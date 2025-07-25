@@ -1,0 +1,17 @@
+Package: gwas2crispr
+Type: Package
+Title: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction
+Version: 0.1.0
+Authors@R: c(person("Othman", "S. I. Mohammed", email = "admin@leopard.ly", role = c("aut", "cre")))
+Description: Provides a reproducible and fully automated pipeline to extract,
+    process, and export significant GWAS SNPs for any human trait or disease (EFO identifier),
+    ready for downstream CRISPR screening and design. Given any EFO trait and statistical
+    threshold, the package fetches all significant SNPs, annotates their gene context,
+    exports comprehensive metadata tables (CSV), BED files for genomic intersection,
+    and FASTA files with user-defined flanking regions. Outputs are designed to integrate
+    directly with downstream functional genomics tools (QTL, cCRE, on-/off-target analysis)
+    and CRISPR guide design software. Optimized for batch, reproducible, and large-scale
+    workflows in genetic editing research.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true

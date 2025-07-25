@@ -1,0 +1,4 @@
+result <- run_gwas2crispr(
+  efo_id     = "EFO_0001663",   # EFO trait ID
+  out_prefix = "prostate"
+)
