@@ -1,0 +1,41 @@
+# --------------------------------------------
+# Ignore IDE and local environment artifacts
+# --------------------------------------------
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.Renviron$
+^\.Rhistory$
+^\.RData$
+^\.Ruserdata$
+^\.DS_Store$
+^\.httr-oauth$
+
+# --------------------------------------------
+# Ignore pkgdown, GitHub, and documentation
+# --------------------------------------------
+^README\.Rmd$
+^_pkgdown\.yml$
+^pkgdown$
+^docs$
+^\.github$
+
+# --------------------------------------------
+# Ignore generated vignette outputs
+# --------------------------------------------
+^vignettes/.*\.(html|pdf)$
+
+# --------------------------------------------
+# Ignore test/example output files in root
+# --------------------------------------------
+^[^/]+_snps_.*\.(csv|bed|fa)$
+
+# --------------------------------------------
+# Ignore text notes or loose documentation
+# --------------------------------------------
+^[^/]+\.txt$
+^cran-comments\.md$
+^LICENSE\.md$
+^README_figs/
+
+^doc$
+^Meta$

@@ -1,0 +1,10 @@
+citHeader("To cite gwas2crispr in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "gwas2crispr: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction",
+  author  = person("Othman S. I.", "Mohammed"),
+  year    = "2025",
+  note    = sprintf("R package version %s", meta$Version),
+  url     = "https://github.com/leopard0ly/gwas2crispr"
+)

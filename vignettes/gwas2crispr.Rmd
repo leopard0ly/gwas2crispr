@@ -1,0 +1,72 @@
+---
+title: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
+pagetitle: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready files (hg38)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+# Keep vignette fast and CRAN-safe: disable evaluation by default
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+## Overview
+
+`gwas2crispr` retrieves significant GWAS SNPs for an EFO trait, aggregates variant/gene/study
+metadata, and exports CSV, BED, and FASTA files for downstream functional genomics and CRISPR
+guide design. The package targets **GRCh38/hg38**.
+
+### Core functions
+
+* `fetch_gwas(efo_id, p_cut)` — fetch significant associations via `gwasrapidd` with a REST fallback.
+* `run_gwas2crispr(efo_id, p_cut, flank_bp, out_prefix)` — end-to-end pipeline that writes CSV/BED/FASTA.
+
+> This vignette does not run network calls or write files to keep CRAN checks deterministic.
+
+## Installation
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install(c("Biostrings", "BSgenome.Hsapiens.UCSC.hg38"))
+
+if (!requireNamespace("devtools", quietly = TRUE))
+  install.packages("devtools")
+devtools::install_github("leopard0ly/gwas2crispr")
+```
+
+## Quick example
+
+```{r}
+library(gwas2crispr)
+
+# Prostate cancer (EFO_0001663), genome build GRCh38/hg38
+run_gwas2crispr(
+  efo_id     = "EFO_0001663",
+  p_cut      = 5e-8,
+  flank_bp   = 200,
+  out_prefix = "prostate"
+)
+```
+
+## Files written
+
+* `prostate_snps_full.csv` — unified metadata table
+* `prostate_snps_hg38.bed` — BED intervals
+* `prostate_snps_flank200.fa` — FASTA sequences (requires `BSgenome.Hsapiens.UCSC.hg38`)
+
+## Command-line usage
+
+```bash
+Rscript "$(Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))")" \
+  -e EFO_0001663 -p 5e-8 -f 200 -o prostate
+```
+
+## Session info
+
+```{r, eval=TRUE}
+sessionInfo()
+```
