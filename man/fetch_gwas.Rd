@@ -7,7 +7,8 @@
 fetch_gwas(efo_id = "EFO_0001663", p_cut = 5e-08)
 }
 \arguments{
-\item{efo_id}{character. EFO trait identifier (e.g., "EFO_0001663").}
+\item{efo_id}{character. Experimental Factor Ontology (EFO) trait identifier
+(e.g., "EFO_0001663").}
 
 \item{p_cut}{numeric. P-value threshold for significance (default 5e-8).}
 }
@@ -28,9 +29,12 @@ This function performs network calls and may be rate-limited. Column names
 returned by the REST API may change; defensive checks are applied.
 }
 \examples{
-\dontrun{
-  a <- fetch_gwas("EFO_0001663", p_cut = 5e-8)
-  head(a@associations)
+\donttest{
+  # Network call; may be rate-limited, so we mark it as \donttest.
+  a <- try(fetch_gwas("EFO_0001663", p_cut = 5e-8), silent = TRUE)
+  if (!inherits(a, "try-error")) {
+    head(a@associations)
+  }
 }
 
 }

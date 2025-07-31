@@ -2,53 +2,71 @@
 % Please edit documentation in R/run_gwas2crispr.R
 \name{run_gwas2crispr}
 \alias{run_gwas2crispr}
-\title{GWAS to CRISPR target builder}
+\title{Run the GWAS to CRISPR export pipeline (hg38)}
 \usage{
 run_gwas2crispr(
   efo_id,
   p_cut = 5e-08,
   flank_bp = 200,
-  out_prefix = "output",
-  genome_pkg = "BSgenome.Hsapiens.UCSC.hg38"
+  out_prefix = NULL,
+  genome_pkg = "BSgenome.Hsapiens.UCSC.hg38",
+  verbose = interactive()
 )
 }
 \arguments{
-\item{efo_id}{character. EFO trait identifier (e.g., "EFO_0001663").}
+\item{efo_id}{character. Experimental Factor Ontology (EFO) identifier,
+e.g., "EFO_0001663".}
 
-\item{p_cut}{numeric. P-value threshold for significant SNPs (default 5e-8).}
+\item{p_cut}{numeric. P-value threshold for significance (default 5e-8).}
 
-\item{flank_bp}{integer. Flanking bases for FASTA around each SNP (default 200).}
+\item{flank_bp}{integer. Flanking bases for FASTA sequences (default 200).}
 
-\item{out_prefix}{character. Prefix for output filenames (default "output").}
+\item{out_prefix}{character or NULL. File prefix (including path) for outputs.
+If \code{NULL} (default), nothing is written to disk and a result object is returned.
+To write files safely in examples/tests, use \code{file.path(tempdir(), "prefix")}.}
 
 \item{genome_pkg}{character. BSgenome package to use for FASTA
 (default "BSgenome.Hsapiens.UCSC.hg38"); FASTA step is skipped if not installed.}
+
+\item{verbose}{logical. If TRUE, emit progress via \code{message()}.}
 }
 \value{
-Invisibly returns a list with elements:
-\code{csv}, \code{bed}, \code{fasta} (paths), and in-memory summaries
-\code{summary} and \code{chr_freq}.
+(Invisibly) a list with elements:
+\itemize{
+\item \code{summary}: tibble with basic counts.
+\item \code{snps_full}: tibble of SNP metadata.
+\item \code{bed}: tibble of BED intervals (if computed).
+\item \code{fasta}: \code{Biostrings::DNAStringSet} (if computed).
+\item \code{written}: character vector of file paths written (possibly empty).
+}
 }
 \description{
-End-to-end helper that fetches significant SNPs for an EFO trait,
-aggregates variant, gene, and study metadata, and writes three outputs:
-\itemize{
-\item \code{<out_prefix>_snps_full.csv} (metadata table)
-\item \code{<out_prefix>_snps_hg38.bed} (BED intervals)
-\item \code{<out_prefix>_snps_flank<bp>.fa} (FASTA sequences; requires BSgenome)
-}
+End-to-end pipeline: fetch significant associations, annotate,
+and optionally write CSV/BED/FASTA outputs. By default no files are written;
+set \code{out_prefix} to write results.
 }
 \details{
-Performs network I/O and file writing. Examples are wrapped in
-\code{\\dontrun{}} to comply with CRAN checks. Only GRCh38/hg38 is supported.
+Network I/O may occur when fetching data. Only GRCh38/hg38 is supported.
 }
 \examples{
-\dontrun{
-  run_gwas2crispr(
+\donttest{
+  # Write into a temporary directory so we don't touch the user's filespace:
+  tmp <- tempdir()
+  res <- run_gwas2crispr(
     efo_id     = "EFO_0001663",
     p_cut      = 5e-8,
     flank_bp   = 200,
-    out_prefix = "prostate"
+    out_prefix = file.path(tmp, "prostate"),
+    verbose    = FALSE
+  )
+
+  # If you omit 'out_prefix', nothing is written; an object is returned:
+  res2 <- run_gwas2crispr(
+    efo_id     = "EFO_0001663",
+    p_cut      = 5e-8,
+    flank_bp   = 200,
+    out_prefix = NULL,
+    verbose    = FALSE
   )
 }
 

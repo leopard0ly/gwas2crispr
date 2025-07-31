@@ -1,30 +1,31 @@
 ---
+
 title: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
 pagetitle: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
-output: rmarkdown::html_vignette
+output: rmarkdown::html\_vignette
 vignette: >
-  %\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready files (hg38)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
+%\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready files (hg38)}
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteEncoding{UTF-8}
+-------------------------
 
 ```{r, include=FALSE}
 # Keep vignette fast and CRAN-safe: disable evaluation by default
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ## Overview
 
-`gwas2crispr` retrieves significant GWAS SNPs for an EFO trait, aggregates variant/gene/study
-metadata, and exports CSV, BED, and FASTA files for downstream functional genomics and CRISPR
-guide design. The package targets **GRCh38/hg38**.
+`gwas2crispr` retrieves significant genome-wide association study (GWAS) SNPs for an Experimental Factor Ontology (EFO) trait, aggregates variant/gene/study metadata, and **optionally** exports CSV, BED, and FASTA files for downstream functional genomics and CRISPR guide design. The package targets **GRCh38/hg38**.
+
+**Key design for CRAN compliance:** functions do **not** write by default. File writing happens **only if** you set `out_prefix`. In examples/tests/vignettes, write to `tempdir()`.
 
 ### Core functions
 
 * `fetch_gwas(efo_id, p_cut)` — fetch significant associations via `gwasrapidd` with a REST fallback.
-* `run_gwas2crispr(efo_id, p_cut, flank_bp, out_prefix)` — end-to-end pipeline that writes CSV/BED/FASTA.
+* `run_gwas2crispr(efo_id, p_cut, flank_bp, out_prefix = NULL, verbose = FALSE)` — end-to-end pipeline that returns objects; writes CSV/BED/FASTA **only** if `out_prefix` is provided.
 
-> This vignette does not run network calls or write files to keep CRAN checks deterministic.
+> This vignette does not run network calls or write files (global `eval = FALSE`) to keep CRAN checks deterministic.
 
 ## Installation
 
@@ -38,32 +39,56 @@ if (!requireNamespace("devtools", quietly = TRUE))
 devtools::install_github("leopard0ly/gwas2crispr")
 ```
 
-## Quick example
+## Quick examples (file‑safe patterns)
+
+### A) No files written (object‑only workflow)
 
 ```{r}
 library(gwas2crispr)
 
-# Prostate cancer (EFO_0001663), genome build GRCh38/hg38
-run_gwas2crispr(
+# Prostate cancer (EFO_0001663), GRCh38/hg38
+res <- run_gwas2crispr(
   efo_id     = "EFO_0001663",
   p_cut      = 5e-8,
   flank_bp   = 200,
-  out_prefix = "prostate"
+  out_prefix = NULL,      # <- no file I/O
+  verbose    = FALSE
 )
+
+# Inspect in-memory results:
+res$summary      # tibble with basic counts
+head(res$snps_full)
 ```
 
-## Files written
+### B) Write into a temporary directory (safe for examples/tests)
 
-* `prostate_snps_full.csv` — unified metadata table
-* `prostate_snps_hg38.bed` — BED intervals
-* `prostate_snps_flank200.fa` — FASTA sequences (requires `BSgenome.Hsapiens.UCSC.hg38`)
+```{r}
+library(gwas2crispr)
 
-## Command-line usage
+tmp <- tempdir()  # CRAN-safe target
+res <- run_gwas2crispr(
+  efo_id     = "EFO_0001663",
+  p_cut      = 5e-8,
+  flank_bp   = 200,
+  out_prefix = file.path(tmp, "prostate"),  # writes here, not to user's home
+  verbose    = FALSE
+)
+
+# Files written (paths recorded in res$written):
+res$written
+# c("<tmp>/prostate_snps_full.csv",
+#   "<tmp>/prostate_snps_hg38.bed",
+#   "<tmp>/prostate_snps_flank200.fa")
+```
+
+## CLI usage (optional)
 
 ```bash
 Rscript "$(Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))")" \
-  -e EFO_0001663 -p 5e-8 -f 200 -o prostate
+  -e EFO_0001663 -p 5e-8 -f 200 -o "$(Rscript -e "cat(tempdir())")/prostate"
 ```
+
+> The `-o` path in CLI should point to a temporary or user‑chosen directory. Avoid writing to the package root or the current working directory when reproducing examples under CRAN-like conditions.
 
 ## Session info
 

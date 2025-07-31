@@ -1,16 +1,20 @@
 Package: gwas2crispr
 Type: Package
 Title: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(person(given = "Othman S. I.", family = "Mohammed", email = "admin@leopard.ly", role = c("aut", "cre")), person(given = "LEOPARD.LY LTD", role = "cph"))
-Description: Provides a reproducible and automated pipeline to extract, process,
-    and export significant GWAS single-nucleotide polymorphisms (SNPs) for any
-    human trait or disease (identified by its EFO identifier). Given a trait
-    and a p-value threshold, the package retrieves significant SNPs, annotates
-    their gene context, and outputs comprehensive metadata tables (CSV), BED
-    intervals for genomic intersection, and FASTA sequences with user-defined
-    flanking regions. Outputs integrate with downstream functional genomics
-    tools and CRISPR guide design software.
+Description: Provides a reproducible pipeline to extract, process, and export
+    significant genome-wide association study (GWAS) single nucleotide
+    polymorphisms (SNPs) for a human trait or disease identified by its
+    Experimental Factor Ontology (EFO) identifier. Given a trait and a p-value
+    threshold, the package retrieves significant SNPs from the GWAS Catalog,
+    annotates their gene context, and can write a harmonized metadata table
+    ('CSV'), genomic intervals in the Browser Extensible Data ('BED') format,
+    and sequences in the 'FASTA' file format with user-defined flanking regions
+    for clustered regularly interspaced short palindromic repeats (CRISPR)
+    guide design. See Buniello et al. (2019) <doi:10.1093/nar/gkz895> and
+    Sollis et al. (2023) <doi:10.1093/nar/gkac1010> for the GWAS Catalog, and
+    Malone et al. (2010) <doi:10.1093/bioinformatics/btq648> for EFO.
 License: MIT + file LICENSE
 URL: https://github.com/leopard0ly/gwas2crispr
 BugReports: https://github.com/leopard0ly/gwas2crispr/issues

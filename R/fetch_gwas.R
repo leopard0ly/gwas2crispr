@@ -5,7 +5,8 @@
 #' or fails, falls back to the EBI GWAS Summary Statistics REST API to
 #' retrieve significant associations up to the given p-value threshold.
 #'
-#' @param efo_id character. EFO trait identifier (e.g., "EFO_0001663").
+#' @param efo_id character. Experimental Factor Ontology (EFO) trait identifier
+#'   (e.g., "EFO_0001663").
 #' @param p_cut numeric. P-value threshold for significance (default 5e-8).
 #'
 #' @return An S4 object of class \code{"associations"} with slots:
@@ -21,9 +22,12 @@
 #' @seealso \code{\link{run_gwas2crispr}}
 #'
 #' @examples
-#' \dontrun{
-#'   a <- fetch_gwas("EFO_0001663", p_cut = 5e-8)
-#'   head(a@associations)
+#' \donttest{
+#'   # Network call; may be rate-limited, so we mark it as \donttest.
+#'   a <- try(fetch_gwas("EFO_0001663", p_cut = 5e-8), silent = TRUE)
+#'   if (!inherits(a, "try-error")) {
+#'     head(a@associations)
+#'   }
 #' }
 #'
 #' @export
