@@ -2,10 +2,10 @@ test_that("fetch_gwas returns S4 associations object (or try-error on network is
   skip_on_cran()
   res <- try(fetch_gwas("EFO_0000707", p_cut = 1e-6), silent = TRUE)
   if (!inherits(res, "try-error")) {
-    # إذا نجح الاتصال: تأكد أن الكائن من الصنف الصحيح
+    # If the connection succeeds: ensure the object is of the correct class
     expect_s4_class(res, "associations")
   } else {
-    # لو فشل الاتصال الشبكي؛ اعتبرها نجحت تجنّبًا لتعطيل السويت
+    # If the network call fails, treat as success to avoid breaking the suite off-CRAN
     succeed("Network call failed (acceptable off-CRAN); try-error returned.")
   }
 })
@@ -13,11 +13,11 @@ test_that("fetch_gwas returns S4 associations object (or try-error on network is
 test_that("run_gwas2crispr runs and writes only to a temporary directory when requested", {
   skip_on_cran()
 
-  # اكتب داخل tempdir() وليس مجلد العمل
+  # Write inside tempdir(), not the working directory
   tmp <- tempdir()
   prefix <- file.path(tmp, paste0("testout-", as.integer(Sys.time())))
 
-  # شغّل بهدوء (بدون رسائل)
+  # Run quietly (no messages)
   res <- run_gwas2crispr(
     efo_id     = "EFO_0000707",
     p_cut      = 1e-6,
@@ -26,21 +26,21 @@ test_that("run_gwas2crispr runs and writes only to a temporary directory when re
     verbose    = FALSE
   )
 
-  # نظّف مهما حدث
+  # Clean up regardless of outcome
   on.exit({
     if (is.list(res) && !is.null(res$written)) {
       file.remove(res$written[file.exists(res$written)])
     }
   }, add = TRUE)
 
-  # يجب ألا يرمي خطأ
+  # Should not throw an error
   expect_type(res, "list")
 
-  # يجب أن تُكتب ملفات (مساراتها في res$written)
-  expect_true(length(res$written) >= 2)  # CSV و BED على الأقل (FASTA يعتمد على BSgenome)
+  # Files should be written (paths stored in res$written)
+  expect_true(length(res$written) >= 2)  # At least CSV and BED (FASTA depends on BSgenome)
   expect_true(any(grepl("_snps_full\\.csv$", res$written)))
   expect_true(any(grepl("_snps_hg38\\.bed$", res$written)))
 
-  # كل المسارات المبلغ عنها موجودة
+  # All reported paths must exist
   expect_true(all(file.exists(res$written)))
 })
