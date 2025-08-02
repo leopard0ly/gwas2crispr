@@ -1,5 +1,7 @@
 citHeader("To cite gwas2crispr in publications, use:")
 
+meta <- utils::packageDescription("gwas2crispr")
+
 bibentry(
   bibtype = "Manual",
   title   = "gwas2crispr: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction",

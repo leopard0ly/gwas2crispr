@@ -16,8 +16,8 @@ main <- function() {
                           help = "P-value cut-off [default %default]"),
     optparse::make_option(c("-f", "--flank"), type = "integer", default = 200,
                           help = "bp flank for FASTA [default %default]"),
-    optparse::make_option(c("-o", "--out"), type = "character", default = "output",
-                          help = "Prefix for output files [default %default]")
+    optparse::make_option(c("-o", "--out"), type = "character",, default = "output",
+                            help = "Prefix for output files (required to write files)"
   )
 
   parser <- optparse::OptionParser(
