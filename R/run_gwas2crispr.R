@@ -78,6 +78,14 @@ run_gwas2crispr <- function(efo_id,
 
   vmsg <- function(...) if (isTRUE(verbose)) message(...)
 
+  # gwasrapidd is required for variant annotation; fail early if absent
+  if (!requireNamespace("gwasrapidd", quietly = TRUE)) {
+    stop(
+      "The 'gwasrapidd' package is required for variant annotation. Please install it (e.g., via Bioconductor).",
+      call. = FALSE
+    )
+  }
+
   # --- 1) Fetch associations -------------------------------------------------
   vmsg("Fetching GWAS associations for: ", efo_id)
   cat_assocs <- fetch_gwas(efo_id = efo_id, p_cut = p_cut)
