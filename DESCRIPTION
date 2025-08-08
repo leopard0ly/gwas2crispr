@@ -10,11 +10,13 @@ Description: Provides a reproducible pipeline to conduct genome‑wide associati
     Experimental Factor Ontology (EFO), annotates their gene context, and can write a
     harmonised metadata table (CSV), genomic intervals in the Browser Extensible Data
     (BED) format, and sequences in FASTA with user‑defined flanking regions for clustered
-    regularly interspaced short palindromic repeats (CRISPR) guide design.  For details
-    on the GWAS Catalog see Buniello et al. (2019) <doi:10.1093/nar/gky1120> and Sollis
-    et al. (2023) <doi:10.1093/nar/gkac1010>.  For the Experimental Factor Ontology see
-    Experimental Factor Ontology <https://www.ebi.ac.uk/efo>.  For the methodology of
-    CRISPR genome editing see Jinek et al. (2012) <doi:10.1126/science.1225829>.
+    regularly interspaced short palindromic repeats (CRISPR) guide design.
+    For details on the resources and methods see:
+    Buniello et al. (2019) <doi:10.1093/nar/gky1120>;
+    Sollis et al. (2023) <doi:10.1093/nar/gkac1010>;
+    Jinek et al. (2012) <doi:10.1126/science.1225829>;
+    Malone et al. (2010) <doi:10.1093/bioinformatics/btq099>;
+    Experimental Factor Ontology (EFO) <https://www.ebi.ac.uk/efo>.
 License: MIT + file LICENSE
 URL: https://github.com/leopard0ly/gwas2crispr
 BugReports: https://github.com/leopard0ly/gwas2crispr/issues
