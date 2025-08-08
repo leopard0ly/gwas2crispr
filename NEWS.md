@@ -1,3 +1,10 @@
+# gwas2crispr 0.1.2
+
+- **CLI improvements:** The command-line script (`inst/scripts/gwas2crispr.R`) no longer forces file output.  The `--out`/`-o` option is now truly optional: omit it to run the pipeline in memory without writing any files.  A new `--verbose`/`-v` flag prints a concise summary when no outputs are written.  The double comma in the option definition has been fixed.
+- **Console output:** All side‑effects (`print()`/`cat()`) have been replaced with `message()` behind a `verbose` flag.  By default, functions run quietly unless `verbose = TRUE` or the new CLI flag is used.
+- **Testing:** Added `tests/testthat/test-run_gwas2crispr.R` to ensure that `run_gwas2crispr()` writes only to a provided `out_prefix` and returns objects without writing by default.
+- **Documentation:** Updated DESCRIPTION with expanded acronyms and method references; ensured `Language: en-US` and valid Bioconductor `biocViews`.  Updated the README and vignette to reflect the new no-default-write behaviour and optional CLI output.  Added a simple `inst/CITATION` entry.  Bumped version to 0.1.2.
+
 # gwas2crispr 0.1.1
 
 - Address CRAN review:

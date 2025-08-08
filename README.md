@@ -110,9 +110,10 @@ Rscript "$(Rscript -e \"cat(system.file('scripts','gwas2crispr.R', package='gwas
 - `-e, --efo` (required) — EFO trait ID, e.g. `EFO_0001663`
 - `-p, --pthresh` — P‑value cut‑off (default `5e-8`)
 - `-f, --flank` — number of flanking bases for FASTA (default `200`)
-- `-o, --out` — output file prefix *(required to write files; omit to run object‑only)*
+- `-o, --out` — output file prefix *(optional; omit to run object‑only without writing files)*
+- `-v, --verbose` — print progress messages and, when `--out` is omitted, a concise summary
 
-If you omit the `-o/--out` option, the CLI prints a summary to the console but does **not** write any files.
+If you omit the `-o/--out` option, no files are written.  Use `-v/--verbose` to emit a concise summary of the run.
 
 ## Function reference
 
