@@ -17,7 +17,7 @@ Description: Provides a reproducible pipeline to conduct genome‑wide associati
     Jinek et al. (2012) <doi:10.1126/science.1225829>;
     Malone et al. (2010) <doi:10.1093/bioinformatics/btq099>;
     Experimental Factor Ontology (EFO) <https://www.ebi.ac.uk/efo>.
-Lic MIT + file LICENSE
+License: MIT + file LICENSE
 URL: https://github.com/leopard0ly/gwas2crispr
 BugReports: https://github.com/leopard0ly/gwas2crispr/issues
 Depends: R (>= 4.1)
