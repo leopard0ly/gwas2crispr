@@ -1,13 +1,31 @@
 citHeader("To cite gwas2crispr in publications, please use:")
 
-# Safely retrieve package metadata if available.  During R CMD check the package
-# may not yet be installed, so utils::packageDescription() can fail or return
-# an atomic vector.  Use tryCatch() to avoid errors and fall back to defaults.
-meta <- tryCatch(utils::packageDescription("gwas2crispr"), error = function(e) NULL)
+# During R CMD check the CITATION file is evaluated in an environment where
+# `meta` is a named atomic vector rather than a list.  Accessing fields with
+# the `$` operator would therefore error.  Define a helper to safely
+# retrieve metadata entries and provide sensible defaults.
+get_meta <- function(field, default = NULL) {
+  val <- tryCatch(meta[[field]], error = function(e) NULL)
+  if (is.null(val) || length(val) == 0 || is.na(val)) default else as.character(val)
+}
 
-pkg_version <- if (!is.null(meta) && !is.null(meta$Version)) meta$Version else "0.1.2"
-pkg_year    <- if (!is.null(meta) && !is.null(meta$Year)) meta$Year else format(Sys.Date(), "%Y")
+# Determine the package version and year.  If the Year field is missing,
+# attempt to derive it from the Date/Publication field or fall back to the
+# current year.
+pkg_version <- get_meta("Version", "0.1.2")
+pkg_year    <- get_meta("Year", NA_character_)
+if (is.na(pkg_year)) {
+  dp <- get_meta("Date/Publication", NA_character_)
+  if (!is.na(dp)) {
+    pkg_year <- substr(dp, 1L, 4L)
+  } else {
+    pkg_year <- format(Sys.Date(), "%Y")
+  }
+}
 
+# Compose a bibentry describing the package.  This entry will be used by
+# citation() when the package is installed or during R CMD check.  It
+# references the package version and year determined above.
 bibentry(
   bibtype = "Manual",
   title   = "gwas2crispr: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction",
