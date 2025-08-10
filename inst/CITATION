@@ -1,12 +1,18 @@
-citHeader("To cite gwas2crispr in publications, use:")
+citHeader("To cite gwas2crispr in publications, please use:")
 
-meta <- utils::packageDescription("gwas2crispr")
+# Safely retrieve package metadata if available.  During R CMD check the package
+# may not yet be installed, so utils::packageDescription() can fail or return
+# an atomic vector.  Use tryCatch() to avoid errors and fall back to defaults.
+meta <- tryCatch(utils::packageDescription("gwas2crispr"), error = function(e) NULL)
+
+pkg_version <- if (!is.null(meta) && !is.null(meta$Version)) meta$Version else "0.1.2"
+pkg_year    <- if (!is.null(meta) && !is.null(meta$Year)) meta$Year else format(Sys.Date(), "%Y")
 
 bibentry(
   bibtype = "Manual",
   title   = "gwas2crispr: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction",
-  author  = person("Othman S. I.", "Mohammed"),
-  year    = "2025",
-  note    = sprintf("R package version %s", meta$Version),
+  author  = person(given = "Othman S. I.", family = "Mohammed"),
+  year    = pkg_year,
+  note    = sprintf("R package version %s", pkg_version),
   url     = "https://github.com/leopard0ly/gwas2crispr"
 )
