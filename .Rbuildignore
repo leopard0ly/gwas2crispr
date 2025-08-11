@@ -39,3 +39,10 @@
 
 ^doc$
 ^Meta$
+
+# Ignore Quarto files and directories
+^quarto/
+^_quarto\.yml$
+^_freeze/
+^.*\.qmd$
+
