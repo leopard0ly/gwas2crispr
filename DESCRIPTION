@@ -8,8 +8,8 @@ Description: Provides a reproducible pipeline to conduct genome‑wide associati
     disease. Given aggregated GWAS dataset(s) and a user‑defined significance threshold,
     the package retrieves significant SNPs from the GWAS Catalog and the
     Experimental Factor Ontology (EFO), annotates their gene context, and can write a
-    harmonised metadata table (CSV), genomic intervals in the Browser Extensible Data
-    (BED) format, and sequences in FASTA with user‑defined flanking regions for clustered
+    harmonised metadata table in comma-separated values (CSV) format, genomic intervals in the Browser Extensible Data
+    (BED) format, and sequences in the FASTA (text-based sequence) format with user-defined flanking regions for clustered
     regularly interspaced short palindromic repeats (CRISPR) guide design.
     For details on the resources and methods see:
     Buniello et al. (2019) <doi:10.1093/nar/gky1120>;
