@@ -1,17 +1,19 @@
 ---
-
 title: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
 pagetitle: "gwas2crispr: From GWAS to CRISPR-ready files (hg38)"
-output: rmarkdown::html\_vignette
+output: rmarkdown::html_vignette
 vignette: >
-%\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready files (hg38)}
-%\VignetteEngine{knitr::rmarkdown}
-%\VignetteEncoding{UTF-8}
--------------------------
+    %\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready files (hg38)}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+---
 
 ```{r, include=FALSE}
 # Keep vignette fast and CRAN-safe: disable evaluation by default
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  eval = FALSE, message = FALSE, warning = FALSE
+)
 ```
 
 ## Overview
@@ -19,6 +21,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, message = F
 `gwas2crispr` retrieves significant genome-wide association study (GWAS) SNPs for an Experimental Factor Ontology (EFO) trait, aggregates variant/gene/study metadata, and **optionally** exports CSV, BED, and FASTA files for downstream functional genomics and CRISPR guide design. The package targets **GRCh38/hg38**.
 
 **Key design for CRAN compliance:** functions do **not** write by default. File writing happens **only if** you set `out_prefix`. In examples/tests/vignettes, write to `tempdir()`.
+
+> Runtime prerequisites: the GWAS Catalog client **gwasrapidd** is required for data retrieval; **Biostrings** + **BSgenome.Hsapiens.UCSC.hg38** are required only if you want FASTA output.
 
 ### Core functions
 
@@ -34,61 +38,57 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install(c("Biostrings", "BSgenome.Hsapiens.UCSC.hg38"))
 
+install.packages("gwasrapidd")  # required for GWAS retrieval
+
 if (!requireNamespace("devtools", quietly = TRUE))
   install.packages("devtools")
 devtools::install_github("leopard0ly/gwas2crispr")
 ```
 
-## Quick examples (file‑safe patterns)
+## Quick examples (primary + CRAN-safe)
 
-### A) No files written (object‑only workflow)
+### A) Primary workflow — write outputs to the current working directory
 
 ```{r}
 library(gwas2crispr)
 
-# Prostate cancer (EFO_0001663), GRCh38/hg38
-res <- run_gwas2crispr(
-  efo_id     = "EFO_0001663",
-  p_cut      = 5e-8,
-  flank_bp   = 200,
-  out_prefix = NULL,      # <- no file I/O
-  verbose    = FALSE
+# Lung disease (EFO_0000707), GRCh38/hg38
+run_gwas2crispr(
+  efo_id     = "EFO_0000707",
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = "lung"   # produces: lung_snps_full.csv / lung_snps_hg38.bed / lung_snps_flank300.fa
 )
-
-# Inspect in-memory results:
-res$summary      # tibble with basic counts
-head(res$snps_full)
 ```
 
-### B) Write into a temporary directory (safe for examples/tests)
+### B) CRAN-safe — write into a temporary directory
 
 ```{r}
 library(gwas2crispr)
 
 tmp <- tempdir()  # CRAN-safe target
 res <- run_gwas2crispr(
-  efo_id     = "EFO_0001663",
-  p_cut      = 5e-8,
-  flank_bp   = 200,
-  out_prefix = file.path(tmp, "prostate"),  # writes here, not to user's home
+  efo_id     = "EFO_0000707",
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = file.path(tmp, "lung"),  # writes here, not to user's home
   verbose    = FALSE
 )
 
-# Files written (paths recorded in res$written):
-res$written
-# c("<tmp>/prostate_snps_full.csv",
-#   "<tmp>/prostate_snps_hg38.bed",
-#   "<tmp>/prostate_snps_flank200.fa")
+# Files written (list components or vector of paths, depending on return structure):
+res$csv
+res$bed
+res$fasta  # present only if BSgenome/Biostrings are installed
 ```
 
 ## CLI usage (optional)
 
 ```bash
-Rscript "$(Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))")" \
-  -e EFO_0001663 -p 5e-8 -f 200 -o "$(Rscript -e "cat(tempdir())")/prostate"
+Rscript "$(Rscript -e \"cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))\")" \
+  -e EFO_0000707 -p 1e-6 -f 300 -o "$(Rscript -e \"cat(tempdir())\")/lung"
 ```
 
-> The `-o` path in CLI should point to a temporary or user‑chosen directory. Avoid writing to the package root or the current working directory when reproducing examples under CRAN-like conditions.
+> The `-o` path in CLI should point to a temporary or user-chosen directory. Avoid writing to the package root when reproducing examples under CRAN-like conditions.
 
 ## Session info
 
