@@ -161,6 +161,24 @@ Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2
 Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2crispr"))')" -e EFO_0001663 -p 5e-8 -f 200 -o "$(mktemp -d)/prostate"
 ```
 
+**Windows note (PATH issues):**
+
+On some Windows systems, `Rscript` may not be recognized directly in the shell.
+In this case, either use the full path to the executable:
+
+```cmd
+"C:\Program Files\R\R-4.4.3\bin\Rscript.exe" "C:\Gwas2Crispr\inst\scripts\gwas2crispr.R" -e EFO_0001663 -p 5e-8 -f 200 -o prostate
+```
+
+Or add R’s `bin` directory (e.g., `C:\Program Files\R\R-4.4.3\bin`) to your system `PATH` variable,
+so that `Rscript` can be invoked directly:
+
+```cmd
+Rscript "C:\Gwas2Crispr\inst\scripts\gwas2crispr.R" -e EFO_0001663 -p 5e-8 -f 200 -o prostate
+```
+
+This ensures the CLI runs smoothly across Linux, macOS, and Windows.
+
 ### Options
 
 * `-e, --efo` (required) — EFO trait ID, e.g. `EFO_0001663`
