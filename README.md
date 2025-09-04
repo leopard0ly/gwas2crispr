@@ -161,7 +161,7 @@ Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2
 Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2crispr"))')" -e EFO_0001663 -p 5e-8 -f 200 -o "$(mktemp -d)/prostate"
 ```
 
-**Windows note (PATH issues):**
+### Windows note (PATH issues):
 
 On some Windows systems, `Rscript` may not be recognized directly in the shell.
 In this case, either use the full path to the executable:
