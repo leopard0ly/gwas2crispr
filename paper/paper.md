@@ -47,7 +47,7 @@ To illustrate the utility of **gwas2crispr**, we applied the pipeline to prostat
 
 ## Example applications
 
-As an illustration beyond oncology, applying **gwas2crispr** to type 2 diabetes (EFO_0001360) with the default significance threshold and a 200 bp flank returned roughly 1 200 genome‑wide significant SNPs and about 1 900 SNP–gene links as of 31 August 2025.  These results, exported as CSV, BED and FASTA, provide a ready starting point for designing CRISPR assays targeting genes involved in glucose homeostasis and insulin secretion.  This example demonstrates that the workflow is applicable to a broad range of complex traits.
+As an illustration beyond oncology, applying gwas2crispr to hypertension (EFO_0000537) with a significance threshold of 1 × 10⁻⁶ and a 300 bp flank returned about 1 518 genome-wide significant SNPs and 1 275 SNP–gene links covering 753 unique genes from 1 886 studies (as of 31 August 2025). These results, exported as CSV, BED and FASTA, provide a ready starting point for designing CRISPR assays targeting genes involved in blood pressure regulation. This example demonstrates that the workflow is applicable to a broad range of complex traits.
 
 ## Performance and availability
 
