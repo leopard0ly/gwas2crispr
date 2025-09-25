@@ -46,3 +46,7 @@
 ^_freeze/
 ^.*\.qmd$
 
+
+
+# Ignore JOSS paper directory
+^paper$
