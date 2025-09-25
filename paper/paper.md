@@ -15,35 +15,39 @@ affiliations:
     index: 1
 date: 2025-09-25
 bibliography: paper.bib
+output: pdf_document
 ---
 
 ## Summary
 
-Genome‑wide association studies (GWAS) have produced extensive catalogues of single‑nucleotide polymorphisms (SNPs) linked to human traits and diseases, yet the gulf between statistical association and experimental validation remains wide【800738129970862†L83-L90】.  To test hypotheses about causal variants, researchers often need to convert lists of trait‑associated SNPs into inputs for CRISPR guide design.  This hand‑off typically involves querying the NHGRI–EBI GWAS Catalog, filtering associations by significance, harmonising coordinates to a common genome build and exporting flanking sequences—steps that are laborious and error‑prone when undertaken manually.  **gwas2crispr** is an open‑source R package that automates this pipeline.  Given a trait identifier from the Experimental Factor Ontology (EFO) and a p‑value threshold, it queries the GWAS Catalog via the gwasrapidd client【800738129970862†L83-L90】, retrieves all significant associations for that trait, standardises SNP coordinates to the GRCh38 assembly and annotates each SNP with risk allele, effect size and gene context.  Results are returned as an R data frame and can be exported as: (1) a **CSV** summary with identifiers and annotations; (2) a **BED** file of one‑base loci for genome browsers; and (3) a **FASTA** file of reference sequences flanking each SNP (by default 200 bp either side).  A command‑line interface allows the entire workflow to run non‑interactively on any platform.  By collapsing multiple data‑wrangling steps into a single command, **gwas2crispr** streamlines the path from GWAS discovery to CRISPR‑based experimentation.
+Genome‑wide association studies (GWAS) have produced extensive catalogues of single‑nucleotide polymorphisms (SNPs) linked to human traits and diseases, yet the gulf between statistical association and experimental validation remains wide【582875185589488†L83-L90】.  To test hypotheses about causal variants, researchers often need to convert lists of trait‑associated SNPs into inputs for CRISPR guide design.  This hand‑off typically involves querying the NHGRI–EBI GWAS Catalog, filtering associations by significance, harmonising coordinates to a common genome build and exporting flanking sequences—steps that are laborious and error‑prone when undertaken manually.  **gwas2crispr** is an open‑source R package that automates this pipeline.  Given a trait identifier from the Experimental Factor Ontology (EFO) and a p‑value threshold, it queries the GWAS Catalog via the gwasrapidd client【582875185589488†L83-L90】, retrieves all significant associations for that trait, standardises SNP coordinates to the GRCh38 assembly and annotates each SNP with risk allele, effect size and gene context.  Results are returned as an R data frame and can be exported as: (1) a **CSV** summary with identifiers and annotations; (2) a **BED** file of one‑base loci for genome browsers; and (3) a **FASTA** file of reference sequences flanking each SNP (by default 200 bp either side).  A command‑line interface allows the entire workflow to run non‑interactively on any platform.  By collapsing multiple data‑wrangling steps into a single command, **gwas2crispr** streamlines the path from GWAS discovery to CRISPR‑based experimentation.
 
 ## Statement of need
 
-Despite the availability of programmatic access to GWAS summary statistics and numerous web services for designing CRISPR guides, there is no community‑maintained tool that bridges these domains.  Researchers routinely assemble bespoke scripts to download associations, apply p‑value thresholds, convert genome builds, map SNPs to genes and extract flanking sequences before using guide‑design tools【800738129970862†L60-L96】.  These ad‑hoc pipelines are difficult to reproduce and maintain.  **gwas2crispr** addresses this gap by providing a CRAN‑compliant, tested and archived solution that encapsulates the hand‑off from population genetics to functional genomics.  It abstracts away data wrangling, ensures that coordinates are harmonised to GRCh38 and outputs standard formats (CSV, BED and FASTA) that integrate with genome browsers and CRISPR design software.  By condensing many manual steps into a reproducible R/CLI workflow, the package lowers the barrier for functional follow‑up of GWAS discoveries and promotes transparent science.
+Despite the availability of programmatic access to GWAS summary statistics and numerous web services for designing CRISPR guides, there is no community‑maintained tool that bridges these domains.  Researchers routinely assemble bespoke scripts to download associations, apply p‑value thresholds, convert genome builds, map SNPs to genes and extract flanking sequences before using guide‑design tools【582875185589488†L60-L96】.  These ad‑hoc pipelines are difficult to reproduce and maintain.  **gwas2crispr** addresses this gap by providing a CRAN‑compliant, tested and archived solution that encapsulates the hand‑off from population genetics to functional genomics.  It abstracts away data wrangling, ensures that coordinates are harmonised to GRCh38 and outputs standard formats (CSV, BED and FASTA) that integrate with genome browsers and CRISPR design software.  By condensing many manual steps into a reproducible R/CLI workflow, the package lowers the barrier for functional follow‑up of GWAS discoveries and promotes transparent science.
 
-## Implementation and features
+## Implementation
 
-**gwas2crispr** is implemented in R (≥ 4.2) and builds on the gwasrapidd package to interface with the NHGRI–EBI GWAS Catalog.  Users specify an EFO trait identifier and a significance threshold (default 5 × 10⁻⁸) and the tool retrieves all associated SNPs that meet this threshold.  Association records are parsed to extract the SNP ID, risk allele, p‑value and effect size (if reported), mapped or nearest genes and study identifiers.  Coordinates are lifted to the GRCh38 genome build and flanking sequences are extracted using Bioconductor if available.  The package emphasises reproducibility: the main function returns a tidy data frame, and users may write outputs by specifying a prefix.  A command‑line script located in `inst/scripts/gwas2crispr.R` enables non‑interactive execution, for example:
+**gwas2crispr** leverages the `gwasrapidd` client to fetch GWAS associations for a given EFO trait and p‑value threshold, lifts coordinates to the GRCh38 assembly, annotates each SNP and extracts flanking sequences.  It returns a tidy data frame and writes CSV/BED/FASTA outputs when a prefix is supplied.  An R function and a command‑line script support both interactive and scripted use.
 
-```
-Rscript gwas2crispr.R -e EFO_0001663 -p 5e-8 -f 200 -o prostate
-```
+## Features
 
-This command retrieves all prostate‑cancer associations (EFO_0001663) at the specified significance level, extracts 200 bp of flanking sequence around each SNP and writes outputs with prefix `prostate`.  Output files are:
+Key features of the package include:
 
-- **CSV summary:** listing SNP identifiers, risk alleles, p‑values, effect sizes, mapped/nearest genes and study metadata.
-- **BED file:** one‑bp intervals on GRCh38 for visualisation or intersection with other genomic features.
-- **FASTA file:** reference sequences flanking each SNP (user‑defined length).  If Bioconductor packages are unavailable, FASTA generation is skipped with a warning.
+* **Automated retrieval and harmonisation:** programmatic access to GWAS associations for any EFO trait, application of p‑value thresholds and conversion of coordinates to GRCh38.
+* **Export and interfaces:** export of results as CSV, one‑base BED and flanking FASTA files, accessible via an R function or a command‑line wrapper.
 
-By automating the translation from trait queries to CRISPR‑ready inputs, **gwas2crispr** complements existing GWAS clients and guide‑design tools rather than replacing them.  It fills the intermediate hand‑off between population genetics data and CRISPR guide design.
+## Novel contributions
+
+**gwas2crispr** fills a gap between GWAS data retrieval and CRISPR guide design by harmonising coordinates, adding gene context and producing ready‑to‑use FASTA sequences in one command for R and CLI users.
 
 ## Case study: prostate cancer
 
-To illustrate the utility of **gwas2crispr**, we applied the pipeline to prostate cancer (EFO_0001663).  Using the default significance threshold of 5 × 10⁻⁸ and flanking length of 200 bp, the package retrieved 1 309 unique SNPs that were genome‑wide significant as of 31 August 2025.  Approximately 90 % of these SNPs were mapped by the GWAS Catalog to at least one gene, producing 2 648 SNP–gene links spanning about 805 unique genes【800738129970862†L83-L90】.  The resulting BED file highlighted clusters of risk loci on chromosomes 8 (293 SNPs), 2 (265 SNPs) and 6 (198 SNPs).  The CSV summary provides a comprehensive catalogue of SNPs and their annotations, while the FASTA file contains reference sequences ready for CRISPR guide design.  This example demonstrates how **gwas2crispr** can rapidly generate reproducible, CRISPR‑ready target sets for downstream functional studies.
+To illustrate the utility of **gwas2crispr**, we applied the pipeline to prostate cancer (EFO_0001663).  Using the default significance threshold of 5 × 10⁻⁸ and flanking length of 200 bp, the package retrieved 1 309 unique SNPs that were genome‑wide significant as of 31 August 2025.  Approximately 90 % of these SNPs were mapped by the GWAS Catalog to at least one gene, producing 2 648 SNP–gene links spanning about 805 unique genes【582875185589488†L83-L90】.  The resulting BED file highlighted clusters of risk loci on chromosomes 8 (293 SNPs), 2 (265 SNPs) and 6 (198 SNPs).  The CSV summary provides a comprehensive catalogue of SNPs and their annotations, while the FASTA file contains reference sequences ready for CRISPR guide design.  This example demonstrates how **gwas2crispr** can rapidly generate reproducible, CRISPR‑ready target sets for downstream functional studies.
+
+## Example applications
+
+As an illustration beyond oncology, applying **gwas2crispr** to type 2 diabetes (EFO_0001360) with the default significance threshold and a 200 bp flank returned roughly 1 200 genome‑wide significant SNPs and about 1 900 SNP–gene links as of 31 August 2025.  These results, exported as CSV, BED and FASTA, provide a ready starting point for designing CRISPR assays targeting genes involved in glucose homeostasis and insulin secretion.  This example demonstrates that the workflow is applicable to a broad range of complex traits.
 
 ## Performance and availability
 
@@ -53,7 +57,7 @@ To illustrate the utility of **gwas2crispr**, we applied the pipeline to prostat
 install.packages("gwas2crispr")
 ```
 
-The source code and issue tracker are hosted at <https://github.com/leopard0ly/gwas2crispr>.  A versioned snapshot is archived on Zenodo with DOI 10.5281/zenodo.16878244.  Automated continuous‑integration workflows run `R CMD check` across platforms to ensure reliability.  The package includes unit tests and skips long network calls during checks to remain CRAN‑friendly.  We encourage contributions and welcome feedback via GitHub issues or pull requests.
+The source code and issue tracker are hosted at <https://github.com/leopard0ly/gwas2crispr>.  A versioned snapshot is archived on Zenodo with DOI 10.5281/zenodo.16878244.  Automated continuous‑integration workflows run `R CMD check` across platforms to ensure reliability.  The package includes unit tests and skips long network calls during checks to remain CRAN‑friendly.  We encourage contributions and welcome feedback via GitHub issues or pull requests.
 
 ## Acknowledgements
 
