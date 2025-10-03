@@ -50,12 +50,3 @@
 
 # Ignore JOSS paper directory
 ^paper$
-
-# ## Ignore backup DESCRIPTION file
-
-^DESCRIPTION_old$
-
-
-
-^DE^DESCRIPTION_old$
-
