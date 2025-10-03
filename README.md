@@ -1,5 +1,7 @@
 # gwas2crispr
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16878244.svg)](https://doi.org/10.5281/zenodo.16878244)
+
 > **GWAS‑to‑CRISPR**: streamlined extraction of significant GWAS SNPs, metadata aggregation and optional FASTA/BED/CSV export for downstream CRISPR design (GRCh38/hg38).
 
 ## Overview
@@ -240,7 +242,9 @@ devtools::test()
 
 ## Citation
 
-Please cite `gwas2crispr` and the resources it builds upon.  To see the formatted citation:
+If you use `gwas2crispr` in your research, please cite the Zenodo release:
+
+[https://doi.org/10.5281/zenodo.16878244](https://doi.org/10.5281/zenodo.16878244)  To see the formatted citation:
 
 ```r
 citation("gwas2crispr")
