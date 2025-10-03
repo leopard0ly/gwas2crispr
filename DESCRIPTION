@@ -1,7 +1,7 @@
 Package: gwas2crispr
 Type: Package
 Title: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction
-Version: 0.1.3
+Version: 0.1.2
 Authors@R: c(person(given = "Othman S. I.", family = "Mohammed", email = "admin@leopard.ly", role = c("aut", "cre")), person(given = "LEOPARD.LY LTD", role = "cph"))
 Description: Provides a reproducible pipeline to conduct genome‑wide association studies
     (GWAS) and extract single‑nucleotide polymorphisms (SNPs) for a human trait or
