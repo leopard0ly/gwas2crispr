@@ -4,37 +4,38 @@
 \alias{fetch_gwas}
 \title{Fetch significant GWAS associations for an EFO trait}
 \usage{
-fetch_gwas(efo_id = "EFO_0001663", p_cut = 5e-08)
+fetch_gwas(efo_id = "EFO_0001663", p_cut = 5e-08, verbose = interactive())
 }
 \arguments{
-\item{efo_id}{character. Experimental Factor Ontology (EFO) trait identifier
-(e.g., "EFO_0001663").}
+\item{efo_id}{character. EFO trait identifier, such as EFO_0001663.}
 
-\item{p_cut}{numeric. P-value threshold for significance (default 5e-8).}
+\item{p_cut}{numeric. P-value threshold for significance.}
+
+\item{verbose}{logical. If \code{TRUE}, prints a compact progress line.}
 }
 \value{
-An S4 object of class \code{"associations"} with slots:
+A list with:
 \itemize{
-\item \code{associations}: data frame with \code{association_id} and \code{pvalue}.
-\item \code{risk_alleles}: data frame mapping \code{association_id} to \code{variant_id}.
+\item \code{associations}: tibble with \code{association_id} and \code{pvalue}.
+\item \code{risk_alleles}: tibble mapping \code{association_id} to \code{variant_id}.
+\item \code{cache}: internal tibble with variant metadata used downstream.
 }
 }
 \description{
-Tries \code{gwasrapidd::get_associations()} first; if it returns no rows
-or fails, falls back to the EBI GWAS Summary Statistics REST API to
-retrieve significant associations up to the given p-value threshold.
+Retrieves significant GWAS Catalog associations directly from the
+EMBL-EBI GWAS Catalog REST API v2. The function resolves the supplied
+Experimental Factor Ontology (EFO) identifier to trait labels, retrieves
+paginated association records, filters by p-value, and returns a list used
+by \code{\link{run_gwas2crispr}}.
 }
 \details{
-This function performs network calls and may be rate-limited. Column names
-returned by the REST API may change; defensive checks are applied.
+This function performs network calls to the GWAS Catalog REST API v2 and may
+be affected by service availability or rate limits.
 }
 \examples{
 \donttest{
-  # Network call; may be rate-limited, so we mark it as \donttest.
-  a <- try(fetch_gwas("EFO_0001663", p_cut = 5e-8), silent = TRUE)
-  if (!inherits(a, "try-error")) {
-    head(a@associations)
-  }
+  a <- fetch_gwas("EFO_0000707", p_cut = 1e-6, verbose = FALSE)
+  head(a$associations)
 }
 
 }

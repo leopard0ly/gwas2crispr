@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_gwas2crispr.R
 \name{run_gwas2crispr}
 \alias{run_gwas2crispr}
-\title{Run the GWAS to CRISPR export pipeline (hg38)}
+\title{Run the GWAS-to-CRISPR export pipeline using GRCh38/hg38}
 \usage{
 run_gwas2crispr(
   efo_id,
@@ -14,60 +14,53 @@ run_gwas2crispr(
 )
 }
 \arguments{
-\item{efo_id}{character. Experimental Factor Ontology (EFO) identifier,
-e.g., "EFO_0001663".}
+\item{efo_id}{character. EFO trait identifier, such as EFO_0001663.}
 
-\item{p_cut}{numeric. P-value threshold for significance (default 5e-8).}
+\item{p_cut}{numeric. P-value threshold for significance.}
 
-\item{flank_bp}{integer. Flanking bases for FASTA sequences (default 200).}
+\item{flank_bp}{integer. Number of flanking bases for FASTA sequence extraction.}
 
-\item{out_prefix}{character or NULL. File prefix (including path) for outputs.
-If \code{NULL} (default), nothing is written to disk and a result object is returned.
-To write files safely in examples/tests, use \code{file.path(tempdir(), "prefix")}.}
+\item{out_prefix}{character or \code{NULL}. Prefix for output files. If
+\code{NULL}, no files are written.}
 
-\item{genome_pkg}{character. BSgenome package to use for FASTA
-(default "BSgenome.Hsapiens.UCSC.hg38"); FASTA step is skipped if not installed.}
+\item{genome_pkg}{character. BSgenome package name used for hg38 FASTA extraction.}
 
-\item{verbose}{logical. If TRUE, emit progress via \code{message()}.}
+\item{verbose}{logical. If \code{TRUE}, prints a compact progress line.}
 }
 \value{
-(Invisibly) a list with elements:
+Invisibly returns a list with:
 \itemize{
-\item \code{summary}: tibble with basic counts.
-\item \code{snps_full}: tibble of SNP metadata.
-\item \code{bed}: tibble of BED intervals (if computed).
-\item \code{fasta}: \code{Biostrings::DNAStringSet} (if computed).
-\item \code{written}: character vector of file paths written (possibly empty).
+\item \code{summary}: one-row tibble with basic counts.
+\item \code{chr_freq}: chromosome frequency table.
+\item \code{snps_full}: harmonized SNP metadata.
+\item \code{bed}: BED-style interval table.
+\item \code{fasta}: DNAStringSet if FASTA was generated; otherwise \code{NULL}.
+\item \code{written}: character vector of written file paths.
 }
 }
 \description{
-End-to-end pipeline: fetch significant associations, annotate,
-and optionally write CSV/BED/FASTA outputs. By default no files are written;
-set \code{out_prefix} to write results.
+Runs the complete computational preparation workflow: retrieves GWAS Catalog
+associations through \code{\link{fetch_gwas}}, prepares SNP metadata, creates
+BED intervals, and optionally writes CSV, BED, and FASTA files for downstream
+CRISPR guide-design preparation.
 }
 \details{
-Network I/O may occur when fetching data. Only GRCh38/hg38 is supported.
+Only GRCh38/hg38 is supported. CSV and BED outputs can be produced without
+genome packages. FASTA output is generated only when
+\pkg{BSgenome.Hsapiens.UCSC.hg38} and \pkg{Biostrings} are installed.
+If FASTA dependencies are unavailable, the function still writes CSV and BED.
 }
 \examples{
 \donttest{
-  # Write into a temporary directory so we don't touch the user's filespace:
-  tmp <- tempdir()
   res <- run_gwas2crispr(
-    efo_id     = "EFO_0001663",
-    p_cut      = 5e-8,
-    flank_bp   = 200,
-    out_prefix = file.path(tmp, "prostate"),
+    efo_id     = "EFO_0000707",
+    p_cut      = 1e-6,
+    flank_bp   = 300,
+    out_prefix = file.path(tempdir(), "lung"),
     verbose    = FALSE
   )
-
-  # If you omit 'out_prefix', nothing is written; an object is returned:
-  res2 <- run_gwas2crispr(
-    efo_id     = "EFO_0001663",
-    p_cut      = 5e-8,
-    flank_bp   = 200,
-    out_prefix = NULL,
-    verbose    = FALSE
-  )
+  res$summary
+  res$written
 }
 
 }

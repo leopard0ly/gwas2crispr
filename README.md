@@ -1,245 +1,185 @@
 # gwas2crispr
 
-> **GWAS‑to‑CRISPR**: streamlined extraction of significant GWAS SNPs, metadata aggregation and optional FASTA/BED/CSV export for downstream CRISPR design (GRCh38/hg38).
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16878244.svg)](https://doi.org/10.5281/zenodo.16878244)
+
+> **GWAS-to-CRISPR**: direct GWAS Catalog REST API v2 retrieval and GRCh38/hg38 CSV, BED, and optional FASTA preparation for downstream CRISPR guide-design workflows.
 
 ## Overview
 
-Genome‑wide association studies (**GWAS**) link traits to genetic variants, but raw summary statistics are not directly usable for guide design.  `gwas2crispr` bridges this gap.  It retrieves significant single‑nucleotide polymorphisms (**SNPs**) for a given **Experimental Factor Ontology** (**EFO**) trait, annotates them with gene and study metadata, and returns in‑memory summaries.  When requested, it also writes ready‑to‑use **CSV**, **BED** and **FASTA** files for high‑throughput CRISPR target design.  All genomic coordinates are mapped to GRCh38/hg38.
+`gwas2crispr` retrieves significant genome-wide association study (**GWAS**) associations for an **Experimental Factor Ontology** (**EFO**) trait directly from the EMBL-EBI GWAS Catalog REST API v2.
 
-### Core functions
+The package prepares:
 
-* `fetch_gwas(efo_id, p_cut = 5e-8)`: fetches significant associations for an EFO trait via `gwasrapidd` with a REST API fallback.
-* `run_gwas2crispr(efo_id, p_cut = 5e-8, flank_bp = 200, out_prefix = NULL)`: end‑to‑end pipeline that calls `fetch_gwas()`, aggregates variant/gene/study metadata, and returns an object with summaries.  If you provide `out_prefix`, it will also write `CSV`, `BED` and optional `FASTA` files.
+- harmonised SNP metadata in CSV format
+- genomic intervals in BED format
+- optional FASTA sequences with user-defined flanking regions
 
-> **CRAN‑safe examples:** the package does **not** write files by default.  Examples that perform network operations or file writing are wrapped in `\donttest{}`.  When you supply `out_prefix`, outputs are written only to paths you specify — in documentation we use `tempdir()`.
+All genomic outputs are prepared for GRCh38/hg38.
 
----
+The package is a computational preparation workflow. It does not perform wet-lab validation, therapeutic interpretation, or biological efficacy testing.
+
+## Core functions
+
+- `fetch_gwas(efo_id, p_cut = 5e-8, verbose = interactive())`
+- `run_gwas2crispr(efo_id, p_cut = 5e-8, flank_bp = 200, out_prefix = NULL, verbose = interactive())`
 
 ## Installation
 
-### Requirements (read first)
+### Requirements
 
-* **R ≥ 4.1**
-* **Required runtime client:** **gwasrapidd** — used to query the GWAS Catalog for associations. *Install it before running `gwas2crispr`.*
-* Core CRAN stack: `httr`, `dplyr`, `purrr`, `readr`, `tibble`, `tidyr`, `methods`, `utils` (pulled automatically)
-* **FASTA output requires (Bioconductor):** `Biostrings`, `BSgenome.Hsapiens.UCSC.hg38`
-  If these are missing, CSV/BED are still produced; FASTA is skipped gracefully.
-* (Optional for CLI) `optparse`
+- R >= 4.1
+- Direct internet access to the EMBL-EBI GWAS Catalog REST API v2
+- Core R packages listed in `DESCRIPTION`
 
-#### Install the core prerequisite (GWAS Catalog client)
+### Optional FASTA requirements
 
-```r
-install.packages("gwasrapidd")
-```
-
-#### Install Bioconductor dependencies (for FASTA)
+FASTA extraction requires:
 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
-BiocManager::install(c("Biostrings", "BSgenome.Hsapiens.UCSC.hg38"))
+
+BiocManager::install(c(
+  "Biostrings",
+  "GenomeInfoDb",
+  "BSgenome.Hsapiens.UCSC.hg38"
+))
 ```
 
-### Install from GitHub
+CSV and BED outputs can still be produced without the optional FASTA packages.
 
-Until the package is on CRAN, install the development version directly:
+### Install from GitHub
 
 ```r
 if (!requireNamespace("devtools", quietly = TRUE))
   install.packages("devtools")
+
 devtools::install_github("leopard0ly/gwas2crispr")
 ```
 
-After CRAN release you will be able to run:
-
-```r
-install.packages("gwas2crispr")
-```
-
----
-
-## Quick start (primary workflow)
-
-Use a clear prefix and write outputs (CSV/BED/FASTA) to your **current working directory**:
-
-```r
-library(gwas2crispr)
-
-run_gwas2crispr(
-  efo_id    = "EFO_0000707",  # lung disease (example)
-  p_cut     = 1e-6,
-  flank_bp  = 300,
-  out_prefix = "lung"         # produces: lung_snps_full.csv / lung_snps_hg38.bed / lung_snps_flank300.fa
-)
-```
-
-**Outputs**
-
-* `lung_snps_full.csv` — harmonised SNP metadata from the GWAS Catalog (GRCh38).
-* `lung_snps_hg38.bed` — intervals suitable for genomic intersection.
-* `lung_snps_flank300.fa` — sequences for CRISPR guide design (**requires** `Biostrings` + `BSgenome.Hsapiens.UCSC.hg38`).
-
-### A) Object‑only (no files written)
+## Quick start
 
 ```r
 library(gwas2crispr)
 
 res <- run_gwas2crispr(
-  efo_id     = "EFO_0001663",  # Prostate cancer
-  p_cut      = 5e-8,
-  flank_bp   = 200,
-  out_prefix = NULL            # <- no writing; returns objects only
+  efo_id     = "EFO_0000707",
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = "lung",
+  verbose    = TRUE
 )
 
-res$summary   # one‑row tibble: n_SNPs, SNPs_w_gene, unique_genes, n_studies
-res$chr_freq  # table of chromosomes by SNP count
+res$summary
+res$written
 ```
 
-### B) Write files to a safe temporary directory (secondary)
+Expected output files:
+
+- `lung_snps_full.csv`
+- `lung_snps_hg38.bed`
+- `lung_snps_flank300.fa`
+
+The FASTA file is written only when the hg38 BSgenome and Biostrings packages are installed.
+
+## Thesis case-study example
 
 ```r
-out <- file.path(tempdir(), "prostate")  # CRAN‑friendly
+library(gwas2crispr)
+
 res <- run_gwas2crispr(
   efo_id     = "EFO_0001663",
   p_cut      = 5e-8,
   flank_bp   = 200,
-  out_prefix = out
+  out_prefix = "prostate",
+  verbose    = TRUE
 )
 
-res$csv    # path to <prefix>_snps_full.csv
-res$bed    # path to <prefix>_snps_hg38.bed
-res$fasta  # path to <prefix>_snps_flank<bp>.fa (only if BSgenome installed)
+res$summary
+res$written
 ```
 
-**Output file names**
+## Object-only mode
 
-* `<prefix>_snps_full.csv` — unified metadata table
-* `<prefix>_snps_hg38.bed` — BED intervals
-* `<prefix>_snps_flank<bp>.fa` — FASTA sequences (requires `BSgenome.Hsapiens.UCSC.hg38`)
+No files are written when `out_prefix = NULL`.
 
----
+```r
+res <- run_gwas2crispr(
+  efo_id     = "EFO_0001663",
+  p_cut      = 5e-8,
+  flank_bp   = 200,
+  out_prefix = NULL,
+  verbose    = FALSE
+)
 
-## Command‑line interface (CLI)
-
-A portable Rscript is installed in the package under `inst/scripts/gwas2crispr.R`.  Use it to run the pipeline from the shell.  The script relies on the `optparse` package; install it if missing.
-
-### Windows (Command Prompt)
-
-**Version-agnostic (recommended):**
-
-```bat
-Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))" ^
-  | Rscript -- -e EFO_0001663 -p 5e-8 -f 200 -o "%CD%\prostate"
+res$summary
+res$bed
 ```
 
-**Fixed output (current folder):**
+## Output files
 
-```bat
-"C:\Program Files\R\R-4.4.1\bin\Rscript.exe" ^
-  "C:\Users\ZAD ECT\AppData\Local\R\win-library\4.4\gwas2crispr\scripts\gwas2crispr.R" ^
-  -e EFO_0001663 -p 5e-8 -f 200 -o "%CD%\prostate"
+When `out_prefix` is supplied, the package writes:
+
+- `<prefix>_snps_full.csv`
+- `<prefix>_snps_hg38.bed`
+- `<prefix>_snps_flank<bp>.fa`
+
+## Notes
+
+- Genome build is fixed to GRCh38/hg38.
+- GWAS retrieval uses the EMBL-EBI GWAS Catalog REST API v2 directly.
+- Results may change when GWAS Catalog content is updated.
+- Network availability and rate limits may affect retrieval.
+- FASTA export is optional.
+- CSV and BED preparation remain available without optional genome packages.
+- The package prepares computational outputs for downstream CRISPR guide-design workflows only.
+
+## Command-line interface
+
+A portable script is available under:
+
+```text
+inst/scripts/gwas2crispr.R
 ```
 
-**Temporary output (system temp):**
-
-```bat
-Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))" ^
-  | Rscript -- -e EFO_0001663 -p 5e-8 -f 200 -o "%TEMP%\prostate"
-```
-
-### Linux/macOS (Bash)
-
-**Fixed output (current folder):**
+Example:
 
 ```bash
-Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2crispr"))')" -e EFO_0001663 -p 5e-8 -f 200 -o "$PWD/prostate"
+Rscript inst/scripts/gwas2crispr.R -e EFO_0001663 -p 5e-8 -f 200 -o prostate -v
 ```
 
-**Temporary output (system temp):**
+Options:
 
-```bash
-Rscript "$(Rscript -e 'cat(system.file("scripts","gwas2crispr.R", package="gwas2crispr"))')" -e EFO_0001663 -p 5e-8 -f 200 -o "$(mktemp -d)/prostate"
-```
-
-### Options
-
-* `-e, --efo` (required) — EFO trait ID, e.g. `EFO_0001663`
-* `-p, --pthresh` — P‑value cut‑off (default `5e-8`)
-* `-f, --flank` — number of flanking bases for FASTA (default `200`)
-* `-o, --out` — output file prefix *(optional; omit to run object‑only without writing files)*
-* `-v, --verbose` — print progress messages and, when `--out` is omitted, a concise summary
-
-If you omit the `-o/--out` option, no files are written.  Use `-v/--verbose` to emit a concise summary of the run.
-
----
-
-## Function reference
-
-### `fetch_gwas(efo_id, p_cut = 5e-8)`
-
-Fetch significant associations for an EFO trait.  Tries `gwasrapidd::get_associations()` first; if no rows or an error is returned, falls back to the EBI GWAS REST API.
-
-* **Returns:** an S4 object of class `"associations"` with slots `associations` and `risk_alleles` (compatible with `gwasrapidd`).
-* **Notes:** performs network requests and may be rate‑limited.
-
-### `run_gwas2crispr(efo_id, p_cut = 5e-8, flank_bp = 200, out_prefix = NULL)`
-
-Runs the full pipeline: fetches GWAS data, merges gene and study annotations, and returns a list with `summary` and `chr_freq`.  When `out_prefix` is provided, the list also contains file paths to the written `csv`, `bed` and optional `fasta` files.
-
-* **Genome build:** GRCh38/hg38 (requires `BSgenome.Hsapiens.UCSC.hg38` for FASTA export)
-* **Return value:** list with components `summary`, `chr_freq` and, if writing, `csv`, `bed`, `fasta` paths.
-
----
-
-## Reproducibility & file layout
-
-* Large outputs are **not** bundled in the package tarball; they are excluded via `.Rbuildignore`.
-* Small example files (if needed) should live under `inst/extdata/` and can be accessed with:
-
-  ```r
-  system.file("extdata", "your_example.csv", package = "gwas2crispr")
-  ```
-
----
+- `-e, --efo` — EFO trait ID, for example `EFO_0001663`
+- `-p, --pthresh` — p-value threshold
+- `-f, --flank` — number of flanking bases for FASTA extraction
+- `-o, --out` — output file prefix
+- `-v, --verbose` — print progress messages
 
 ## Testing
-
-Automated tests live in `tests/testthat/` and avoid network calls on CRAN via `skip_on_cran()`.  To run the test suite locally:
 
 ```r
 devtools::test()
 ```
 
----
-
-## Notes on resources
-
-* **FASTA export** is optional.  If `BSgenome.Hsapiens.UCSC.hg38` is not installed, the FASTA step is skipped gracefully; CSV and BED files will still be produced.
-* **Required runtime client:** `gwasrapidd` must be installed to ensure smooth data retrieval from the GWAS Catalog.
-* Informational output uses `message()` so that you can silence it with `suppressMessages()` when running scripts or examples.
-
----
+Network-dependent tests are skipped on CRAN.
 
 ## Citation
 
-Please cite `gwas2crispr` and the resources it builds upon.  To see the formatted citation:
+If you use `gwas2crispr`, cite the Zenodo release:
+
+[https://doi.org/10.5281/zenodo.16878244](https://doi.org/10.5281/zenodo.16878244)
 
 ```r
 citation("gwas2crispr")
 ```
 
-Additional background: Sudlow et al. (2015) *UK Biobank: An open access resource for identifying the causes of a wide range of complex diseases of middle and old age* [doi:10.1093/nar/gkv1256](https://doi.org/10.1093/nar/gkv1256).
-
----
-
 ## Getting help
 
-* Report issues or request features at [https://github.com/leopard0ly/gwas2crispr/issues](https://github.com/leopard0ly/gwas2crispr/issues).
+Report issues at:
+
+[https://github.com/leopard0ly/gwas2crispr/issues](https://github.com/leopard0ly/gwas2crispr/issues)
 
 ## License
 
-MIT © Othman S. I. Mohammed — see the [`LICENSE`](LICENSE) file for details.
-
-## Acknowledgments
-
-This package builds upon **gwasrapidd** and the **EBI GWAS** REST API.  Sequence handling and genome data are powered by **Biostrings** and **BSgenome**.
+MIT © Othman S. I. Mohammed — see the `LICENSE` file.

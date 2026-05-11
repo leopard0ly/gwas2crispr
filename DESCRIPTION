@@ -1,11 +1,11 @@
 Package: gwas2crispr
 Type: Package
 Title: GWAS-to-CRISPR Data Pipeline for High-Throughput SNP Target Extraction
-Version: 0.1.2
+Version: 0.1.4
 Authors@R: c(person(given = "Othman S. I.", family = "Mohammed", email = "admin@leopard.ly", role = c("aut", "cre")), person(given = "LEOPARD.LY LTD", role = "cph"))
-Description: Provides a reproducible pipeline to conduct genome‑wide association studies
-    (GWAS) and extract single‑nucleotide polymorphisms (SNPs) for a human trait or
-    disease. Given aggregated GWAS dataset(s) and a user‑defined significance threshold,
+Description: Provides a reproducible pipeline to conduct genome-wide association studies
+    (GWAS) and extract single-nucleotide polymorphisms (SNPs) for a human trait or
+    disease. Given aggregated GWAS dataset(s) and a user-defined significance threshold,
     the package retrieves significant SNPs from the GWAS Catalog and the
     Experimental Factor Ontology (EFO), annotates their gene context, and can write a
     harmonised metadata table in comma-separated values (CSV) format, genomic intervals in the Browser Extensible Data
@@ -28,11 +28,12 @@ Imports:
     tibble,
     tidyr,
     readr,
-    methods
+    stringr,
+    tidyselect
 Suggests:
-    gwasrapidd,
     Biostrings,
     BSgenome.Hsapiens.UCSC.hg38,
+    GenomeInfoDb,
     optparse,
     testthat,
     knitr,
@@ -41,5 +42,5 @@ VignetteBuilder: knitr, rmarkdown
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 biocViews: Software, Genetics, VariantAnnotation, SNP, DataImport

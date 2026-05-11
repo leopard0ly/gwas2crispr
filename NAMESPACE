@@ -2,3 +2,6 @@
 
 export(fetch_gwas)
 export(run_gwas2crispr)
+importFrom(stats,na.omit)
+importFrom(utils,flush.console)
+importFrom(utils,tail)

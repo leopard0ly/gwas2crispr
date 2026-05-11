@@ -1,0 +1,144 @@
+---
+title: "gwas2crispr: From GWAS to CRISPR-ready Files"
+pagetitle: "gwas2crispr: From GWAS to CRISPR-ready Files"
+output: rmarkdown::html_vignette
+vignette: >
+    %\VignetteIndexEntry{gwas2crispr: From GWAS to CRISPR-ready Files}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+## Overview
+
+`gwas2crispr` prepares genome-wide association study (GWAS) results for downstream clustered regularly interspaced short palindromic repeats (CRISPR) workflows.
+
+The package retrieves significant single-nucleotide polymorphisms (SNPs) for an Experimental Factor Ontology (EFO) trait from the EMBL-EBI GWAS Catalog REST API v2 and returns CRISPR-ready outputs for the GRCh38/hg38 human genome build.
+
+The main outputs are:
+
+* comma-separated values (CSV) tables,
+* Browser Extensible Data (BED) files,
+* optional FASTA sequence files.
+
+## Installation
+
+Install from CRAN:
+
+```{r}
+install.packages("gwas2crispr")
+```
+
+Optional packages for FASTA output:
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install(c(
+  "Biostrings",
+  "GenomeInfoDb",
+  "BSgenome.Hsapiens.UCSC.hg38"
+))
+```
+
+Development version:
+
+```{r}
+if (!requireNamespace("devtools", quietly = TRUE))
+  install.packages("devtools")
+
+devtools::install_github("leopard0ly/gwas2crispr")
+```
+
+## Fetch GWAS associations
+
+```{r}
+library(gwas2crispr)
+
+gwas_data <- fetch_gwas(
+  efo_id  = "EFO_0000707",
+  p_cut   = 1e-6,
+  verbose = FALSE
+)
+
+names(gwas_data)
+head(gwas_data$associations)
+```
+
+## Run without writing files
+
+By default, no files are written.
+
+```{r}
+res <- run_gwas2crispr(
+  efo_id     = "EFO_0000707",
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = NULL,
+  verbose    = FALSE
+)
+
+res$summary
+head(res$snps_full)
+head(res$bed)
+```
+
+## Write files safely
+
+To write output files, provide `out_prefix`. In examples, use `tempdir()`.
+
+```{r}
+out_prefix <- file.path(tempdir(), "lung")
+
+res <- run_gwas2crispr(
+  efo_id     = "EFO_0000707",
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = out_prefix,
+  verbose    = FALSE
+)
+
+res$written
+```
+
+Expected output paths:
+
+```{r}
+paste0(out_prefix, "_snps_full.csv")
+paste0(out_prefix, "_snps_hg38.bed")
+paste0(out_prefix, "_snps_flank300.fa")
+```
+
+The FASTA file is created only when the optional genome packages are available.
+
+## Output structure
+
+```{r}
+names(res)
+```
+
+Common outputs:
+
+```{r}
+res$summary
+res$snps_full
+res$bed
+res$fasta
+res$written
+```
+
+## Session information
+
+```{r, eval=TRUE}
+sessionInfo()
+```

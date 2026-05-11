@@ -1,6 +1,5 @@
 # --------------------------------------------
 # Ignore IDE and local environment artifacts
-# --------------------------------------------
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\.Renviron$
@@ -10,39 +9,36 @@
 ^\.DS_Store$
 ^\.httr-oauth$
 
-# --------------------------------------------
-# Ignore pkgdown, GitHub, and documentation
-# --------------------------------------------
+# Ignore package build/check artifacts
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^.*\.zip$
+# Ignore pkgdown, GitHub, and generated docs
 ^README\.Rmd$
 ^_pkgdown\.yml$
 ^pkgdown$
 ^docs$
 ^\.github$
-
-# --------------------------------------------
 # Ignore generated vignette outputs
-# --------------------------------------------
+# Keep source .Rmd vignettes, ignore rendered outputs only
 ^vignettes/.*\.(html|pdf)$
-
-# --------------------------------------------
-# Ignore test/example output files in root
-# --------------------------------------------
-^[^/]+_snps_.*\.(csv|bed|fa)$
-
-# --------------------------------------------
+# Ignore gwas2crispr generated output files in root
+^[^/]+_snps_.*\.(csv|bed|fa|fasta)$
 # Ignore text notes or loose documentation
-# --------------------------------------------
 ^[^/]+\.txt$
 ^cran-comments\.md$
 ^LICENSE\.md$
 ^README_figs/
-
+# Ignore generated package metadata
 ^doc$
 ^Meta$
-
 # Ignore Quarto files and directories
 ^quarto/
 ^_quarto\.yml$
 ^_freeze/
 ^.*\.qmd$
-
+^R/.*\.backup-.*$
+^.*\.backup-.*$
+^\.Rd2pdf.*$
+^\.\.pdf$
+^.*manual\.(pdf|tex|log|aux|idx|ind|out)$
