@@ -2,12 +2,14 @@
 % Please edit documentation in R/fetch_gwas.R
 \name{fetch_gwas}
 \alias{fetch_gwas}
-\title{Fetch significant GWAS associations for an EFO trait}
+\title{Fetch significant GWAS associations for a GWAS Catalog trait identifier}
 \usage{
 fetch_gwas(efo_id = "EFO_0001663", p_cut = 5e-08, verbose = interactive())
 }
 \arguments{
-\item{efo_id}{character. EFO trait identifier, such as EFO_0001663.}
+\item{efo_id}{character. GWAS Catalog trait identifier. The argument name is
+retained for backward compatibility. Examples include EFO_0001663,
+MONDO_0007254, and NCIT_C4872 when supported by the GWAS Catalog API.}
 
 \item{p_cut}{numeric. P-value threshold for significance.}
 
@@ -24,13 +26,16 @@ A list with:
 \description{
 Retrieves significant GWAS Catalog associations directly from the
 EMBL-EBI GWAS Catalog REST API v2. The function resolves the supplied
-Experimental Factor Ontology (EFO) identifier to trait labels, retrieves
-paginated association records, filters by p-value, and returns a list used
-by \code{\link{run_gwas2crispr}}.
+GWAS Catalog trait identifier to direct identifier queries and trait labels,
+retrieves paginated association records, filters by p-value, and returns a
+list used by \code{\link{run_gwas2crispr}}.
 }
 \details{
 This function performs network calls to the GWAS Catalog REST API v2 and may
-be affected by service availability or rate limits.
+be affected by service availability or rate limits. Selected supported
+disease and cancer trait identifier prefixes include EFO, MONDO, and NCIT.
+HP, Orphanet, and ORPHA are accepted for compatibility. GO identifiers are
+not supported as primary GWAS Catalog trait identifiers in gwas2crispr 0.1.5.
 }
 \examples{
 \donttest{

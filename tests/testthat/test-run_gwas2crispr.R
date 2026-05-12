@@ -6,7 +6,7 @@ test_that("run_gwas2crispr validates inputs", {
       flank_bp = 300,
       verbose = FALSE
     ),
-    "efo_id must be a single string"
+    "efo_id must be a single supported GWAS Catalog trait identifier"
   )
 
   expect_error(

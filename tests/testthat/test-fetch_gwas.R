@@ -1,7 +1,7 @@
 test_that("fetch_gwas validates inputs", {
   expect_error(
     fetch_gwas("bad_id", p_cut = 1e-6, verbose = FALSE),
-    "efo_id must be a single string"
+    "efo_id must be a single supported GWAS Catalog trait identifier"
   )
 
   expect_error(
@@ -16,8 +16,65 @@ test_that("fetch_gwas validates inputs", {
 
   expect_error(
     fetch_gwas(c("EFO_0000707", "EFO_0001663"), p_cut = 1e-6, verbose = FALSE),
-    "efo_id must be a single string"
+    "efo_id must be a single supported GWAS Catalog trait identifier"
   )
+})
+
+test_that("trait identifier helpers normalize accepted syntax", {
+  expect_equal(gwas2crispr:::normalize_trait_id("EFO:0001663"), "EFO_0001663")
+  expect_equal(gwas2crispr:::normalize_trait_id("MONDO:0007254"), "MONDO_0007254")
+  expect_equal(gwas2crispr:::normalize_trait_id("NCIT:C4872"), "NCIT_C4872")
+
+  expect_equal(gwas2crispr:::trait_id_prefix("EFO_0001663"), "EFO")
+  expect_equal(gwas2crispr:::trait_id_prefix("MONDO_0007254"), "MONDO")
+  expect_equal(gwas2crispr:::trait_id_prefix("NCIT_C4872"), "NCIT")
+  expect_equal(gwas2crispr:::trait_id_prefix("Orphanet_1234"), "Orphanet")
+  expect_equal(gwas2crispr:::trait_id_prefix("ORPHA_1234"), "ORPHA")
+})
+
+test_that("trait identifier validation accepts supported prefixes", {
+  expect_equal(gwas2crispr:::validate_trait_id("EFO_0001663"), "EFO_0001663")
+  expect_equal(gwas2crispr:::validate_trait_id("MONDO:0007254"), "MONDO_0007254")
+  expect_equal(gwas2crispr:::validate_trait_id("NCIT:C4872"), "NCIT_C4872")
+  expect_equal(gwas2crispr:::validate_trait_id("HP:0004322"), "HP_0004322")
+  expect_equal(gwas2crispr:::validate_trait_id("Orphanet:1234"), "Orphanet_1234")
+  expect_equal(gwas2crispr:::validate_trait_id("ORPHA:1234"), "ORPHA_1234")
+
+  expect_true(gwas2crispr:::is_supported_trait_id("EFO_0001663"))
+  expect_true(gwas2crispr:::is_supported_trait_id("MONDO:0007254"))
+  expect_true(gwas2crispr:::is_supported_trait_id("NCIT:C4872"))
+  expect_true(gwas2crispr:::is_supported_trait_id("HP:0004322"))
+  expect_true(gwas2crispr:::is_supported_trait_id("Orphanet:1234"))
+  expect_true(gwas2crispr:::is_supported_trait_id("ORPHA:1234"))
+})
+
+test_that("trait identifier validation rejects unsupported or malformed IDs", {
+  expect_error(
+    gwas2crispr:::validate_trait_id("GO_0008150"),
+    "GO identifiers are not supported"
+  )
+  expect_error(
+    gwas2crispr:::validate_trait_id("GO:0008150"),
+    "GO identifiers are not supported"
+  )
+
+  for (bad_id in list(
+    "bad_id",
+    "EFO",
+    "MONDO",
+    "NCIT",
+    "12345",
+    "EFO-",
+    "",
+    NA_character_,
+    c("EFO_0001663", "MONDO_0007254")
+  )) {
+    expect_error(
+      gwas2crispr:::validate_trait_id(bad_id),
+      "efo_id must be a single supported GWAS Catalog trait identifier"
+    )
+    expect_false(gwas2crispr:::is_supported_trait_id(bad_id))
+  }
 })
 
 test_that("internal p-value extraction handles mantissa and exponent", {
@@ -111,6 +168,78 @@ test_that("extract_items handles expected GWAS Catalog embedded keys", {
   expect_equal(length(gwas2crispr:::extract_items(js_assoc)), 1L)
   expect_equal(length(gwas2crispr:::extract_items(js_snp)), 1L)
   expect_equal(length(gwas2crispr:::extract_items(js_efo)), 1L)
+})
+
+test_that("extract_items handles alternate response wrappers without metadata records", {
+  js_content <- list(
+    content = list(list(a = 1), list(a = 2)),
+    page = list(totalElements = 2)
+  )
+  js_top_assoc <- list(
+    associations = list(list(a = 1))
+  )
+  js_plain <- list(
+    list(a = 1),
+    list(a = 2)
+  )
+  js_metadata <- list(
+    page = list(totalPages = 1),
+    links = list(self = "example")
+  )
+
+  expect_equal(length(gwas2crispr:::extract_items(js_content)), 2L)
+  expect_equal(length(gwas2crispr:::extract_items(js_top_assoc)), 1L)
+  expect_equal(length(gwas2crispr:::extract_items(js_plain)), 2L)
+  expect_equal(gwas2crispr:::extract_items(js_metadata), list())
+})
+
+test_that("association query plan tries direct identifiers before labels", {
+  plan <- gwas2crispr:::association_query_plan(
+    "EFO_0001663",
+    c("EFO_0001663", "prostate cancer", "prostate cancer")
+  )
+
+  query_keys <- vapply(
+    plan,
+    function(item) paste(names(item$query), item$query, sep = "=", collapse = "&"),
+    character(1)
+  )
+
+  expect_equal(plan[[1]]$route, "direct_id")
+  expect_equal(plan[[1]]$query, list(efo_id = "EFO_0001663"))
+  expect_equal(plan[[2]]$route, "trait_id")
+  expect_equal(plan[[2]]$query, list(efo_trait = "EFO_0001663"))
+  expect_true("efo_trait=prostate cancer" %in% query_keys)
+  expect_false(any(duplicated(query_keys)))
+})
+
+test_that("association query plan generates Orphanet and ORPHA aliases", {
+  orphanet_plan <- gwas2crispr:::association_query_plan("Orphanet_1234")
+  orpha_plan <- gwas2crispr:::association_query_plan("ORPHA_1234")
+
+  orphanet_keys <- vapply(
+    orphanet_plan,
+    function(item) paste(names(item$query), item$query, sep = "=", collapse = "&"),
+    character(1)
+  )
+  orpha_keys <- vapply(
+    orpha_plan,
+    function(item) paste(names(item$query), item$query, sep = "=", collapse = "&"),
+    character(1)
+  )
+
+  expect_true(all(c(
+    "efo_id=Orphanet_1234",
+    "efo_trait=Orphanet_1234",
+    "efo_id=ORPHA_1234",
+    "efo_trait=ORPHA_1234"
+  ) %in% orphanet_keys))
+  expect_true(all(c(
+    "efo_id=ORPHA_1234",
+    "efo_trait=ORPHA_1234",
+    "efo_id=Orphanet_1234",
+    "efo_trait=Orphanet_1234"
+  ) %in% orpha_keys))
 })
 
 test_that("fetch_gwas returns package-native structure when network is available", {

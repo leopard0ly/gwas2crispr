@@ -2,11 +2,14 @@
 #'
 #' @description
 #' Runs the complete computational preparation workflow: retrieves GWAS Catalog
-#' associations through \code{\link{fetch_gwas}}, prepares SNP metadata, creates
-#' BED intervals, and optionally writes CSV, BED, and FASTA files for downstream
-#' CRISPR guide-design preparation.
+#' associations for a supported trait identifier through
+#' \code{\link{fetch_gwas}}, prepares SNP metadata, creates BED intervals, and
+#' optionally writes CSV, BED, and FASTA files for downstream CRISPR guide-design
+#' preparation.
 #'
-#' @param efo_id character. EFO trait identifier, such as EFO_0001663.
+#' @param efo_id character. GWAS Catalog trait identifier. The argument name is
+#'   retained for backward compatibility. Examples include EFO_0001663,
+#'   MONDO_0007254, and NCIT_C4872 when supported by the GWAS Catalog API.
 #' @param p_cut numeric. P-value threshold for significance.
 #' @param flank_bp integer. Number of flanking bases for FASTA sequence extraction.
 #' @param out_prefix character or \code{NULL}. Prefix for output files. If
@@ -29,6 +32,10 @@
 #' genome packages. FASTA output is generated only when
 #' \pkg{BSgenome.Hsapiens.UCSC.hg38} and \pkg{Biostrings} are installed.
 #' If FASTA dependencies are unavailable, the function still writes CSV and BED.
+#' Selected supported disease and cancer trait identifier prefixes include EFO,
+#' MONDO, and NCIT. HP, Orphanet, and ORPHA are accepted for compatibility. GO
+#' identifiers are not supported as primary GWAS Catalog trait identifiers in
+#' gwas2crispr 0.1.5.
 #'
 #' @seealso \code{\link{fetch_gwas}}
 #'
@@ -52,9 +59,7 @@ run_gwas2crispr <- function(efo_id,
                             out_prefix = NULL,
                             genome_pkg = "BSgenome.Hsapiens.UCSC.hg38",
                             verbose = interactive()) {
-  if (!is.character(efo_id) || length(efo_id) != 1L || !grepl("^EFO_\\d+$", efo_id)) {
-    stop("efo_id must be a single string like 'EFO_0001663'.", call. = FALSE)
-  }
+  trait_id <- validate_trait_id(efo_id, arg = "efo_id")
 
   if (!is.numeric(p_cut) || length(p_cut) != 1L || !is.finite(p_cut) || p_cut <= 0) {
     stop("p_cut must be a single positive numeric value.", call. = FALSE)
@@ -77,7 +82,7 @@ run_gwas2crispr <- function(efo_id,
   }
 
   cat_assocs <- fetch_gwas(
-    efo_id = efo_id,
+    efo_id = trait_id,
     p_cut = p_cut,
     verbose = verbose
   )
@@ -108,11 +113,32 @@ run_gwas2crispr <- function(efo_id,
     ) |>
     dplyr::distinct()
 
-  if (nrow(variant_df) == 0L) {
-    variant_df <- pull_v2_snp_details(
-      rsids = lead_variants,
+  missing_variants <- setdiff(lead_variants, variant_df$variant_id)
+
+  if (length(missing_variants) > 0L) {
+    snp_lookup_limit <- 25L
+    snp_lookup_variants <- missing_variants
+
+    if (length(snp_lookup_variants) > snp_lookup_limit) {
+      snp_lookup_variants <- utils::head(snp_lookup_variants, snp_lookup_limit)
+    }
+
+    snp_variant_df <- pull_v2_snp_details(
+      rsids = snp_lookup_variants,
       verbose = verbose
     )
+
+    variant_df <- fill_missing_coordinates(variant_df, snp_variant_df)
+    missing_variants <- setdiff(lead_variants, variant_df$variant_id)
+  }
+
+  if (length(missing_variants) > 0L) {
+    ensembl_variant_df <- pull_ensembl_variant_details(
+      rsids = missing_variants,
+      verbose = verbose
+    )
+
+    variant_df <- fill_missing_coordinates(variant_df, ensembl_variant_df)
   }
 
   if (nrow(variant_df) == 0L) {

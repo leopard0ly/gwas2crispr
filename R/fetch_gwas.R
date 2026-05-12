@@ -506,43 +506,82 @@ get_genes_from_flat <- function(f) {
   paste(pieces, collapse = ";")
 }
 
-extract_items <- function(js) {
-  emb <- js[["_embedded"]]
-
-  if (is.null(emb)) {
+as_record_list <- function(x) {
+  if (is.null(x) || !is.list(x) || length(x) == 0L) {
     return(list())
   }
 
-  if (!is.null(emb$associations)) {
-    return(emb$associations)
+  if (!all(vapply(x, is.list, logical(1)))) {
+    return(list())
   }
 
-  if (!is.null(emb$singleNucleotidePolymorphisms)) {
-    return(emb$singleNucleotidePolymorphisms)
+  nms <- names(x)
+
+  if (!is.null(nms)) {
+    meta_names <- c("page", "links", "embedded", "metadata")
+
+    if (all(clean_name(nms) %in% meta_names)) {
+      return(list())
+    }
   }
 
-  if (!is.null(emb$efoTraits)) {
-    return(emb$efoTraits)
-  }
-
-  if (length(emb) == 1L && is.list(emb[[1]])) {
-    return(emb[[1]])
-  }
-
-  list()
+  unname(x)
 }
 
-get_json <- function(url, query = list(), sleep_on_429 = 10) {
+extract_items <- function(js) {
+  if (is.null(js) || !is.list(js)) {
+    return(list())
+  }
+
+  emb <- js[["_embedded"]]
+
+  if (!is.null(emb) && is.list(emb)) {
+    for (key in c("associations", "singleNucleotidePolymorphisms", "snps", "efoTraits")) {
+      items <- as_record_list(emb[[key]])
+
+      if (length(items) > 0L) {
+        return(items)
+      }
+    }
+
+    if (length(emb) == 1L) {
+      items <- as_record_list(emb[[1]])
+
+      if (length(items) > 0L) {
+        return(items)
+      }
+    }
+  }
+
+  for (key in c("content", "associations", "singleNucleotidePolymorphisms", "snps", "efoTraits")) {
+    items <- as_record_list(js[[key]])
+
+    if (length(items) > 0L) {
+      return(items)
+    }
+  }
+
+  as_record_list(js)
+}
+
+get_json <- function(url, query = list(), sleep_on_429 = 10, timeout_sec = 120) {
   repeat {
-    r <- httr::GET(
-      url,
-      query = query,
-      httr::add_headers(
-        Accept = "application/json",
-        `User-Agent` = "gwas2crispr-direct-v2/0.1.4"
+    r <- tryCatch(
+      httr::GET(
+        url,
+        query = query,
+        httr::add_headers(
+          Accept = "application/json",
+          `User-Agent` = "gwas2crispr-direct-v2/0.1.5"
+        ),
+        httr::timeout(timeout_sec)
       ),
-      httr::timeout(120)
+      error = function(e) NULL
     )
+
+    if (is.null(r)) {
+      return(NULL)
+    }
 
     status <- httr::status_code(r)
 
@@ -555,17 +594,102 @@ get_json <- function(url, query = list(), sleep_on_429 = 10) {
       return(NULL)
     }
 
-    return(httr::content(r, as = "parsed", type = "application/json"))
+    return(tryCatch(
+      httr::content(r, as = "parsed", type = "application/json"),
+      error = function(e) NULL
+    ))
   }
 }
 
-resolve_efo_labels <- function(efo_id, verbose = interactive()) {
-  labels <- character(0)
+trait_id_aliases <- function(trait_id) {
+  trait_id <- normalize_trait_id(trait_id)
 
-  # Always keep the EFO ID itself. GWAS Catalog v2 can use EFO IDs
-  # through the efo_trait filter, and this is more stable than relying
-  # only on resolved text labels.
-  labels <- c(labels, efo_id)
+  if (is.na(trait_id) || !nzchar(trait_id)) {
+    return(character(0))
+  }
+
+  aliases <- trait_id
+  prefix <- trait_id_prefix(trait_id)
+  accession <- sub("^[^_]+_", "", trait_id)
+
+  if (identical(prefix, "Orphanet")) {
+    aliases <- c(aliases, paste0("ORPHA_", accession))
+  } else if (identical(prefix, "ORPHA")) {
+    aliases <- c(aliases, paste0("Orphanet_", accession))
+  }
+
+  unique(aliases)
+}
+
+dedupe_query_plan <- function(plan) {
+  if (length(plan) == 0L) {
+    return(plan)
+  }
+
+  keys <- vapply(
+    plan,
+    function(item) {
+      query <- item$query
+      paste(names(query), query, sep = "=", collapse = "&")
+    },
+    character(1)
+  )
+
+  plan[!duplicated(keys)]
+}
+
+association_query_plan <- function(trait_id, trait_labels = character()) {
+  ids <- trait_id_aliases(trait_id)
+
+  if (length(ids) == 0L) {
+    return(list())
+  }
+
+  plan <- list(
+    list(stage = 1L, route = "direct_id", value = ids[[1]], query = list(efo_id = ids[[1]])),
+    list(stage = 2L, route = "trait_id", value = ids[[1]], query = list(efo_trait = ids[[1]]))
+  )
+
+  if (length(ids) > 1L) {
+    for (alias in ids[-1]) {
+      plan[[length(plan) + 1L]] <- list(
+        stage = 3L,
+        route = "alias_direct_id",
+        value = alias,
+        query = list(efo_id = alias)
+      )
+      plan[[length(plan) + 1L]] <- list(
+        stage = 3L,
+        route = "alias_trait_id",
+        value = alias,
+        query = list(efo_trait = alias)
+      )
+    }
+  }
+
+  labels <- unique(trimws(as.character(trait_labels)))
+  labels <- labels[!is.na(labels) & labels != "" & !grepl("^http", labels)]
+
+  for (label in labels) {
+    plan[[length(plan) + 1L]] <- list(
+      stage = 4L,
+      route = "resolved_label",
+      value = label,
+      query = list(efo_trait = label)
+    )
+  }
+
+  dedupe_query_plan(plan)
+}
+
+resolve_trait_labels <- function(trait_id, verbose = interactive()) {
+  labels <- character(0)
+  ids <- trait_id_aliases(trait_id)
+
+  # Always keep identifier candidates themselves. GWAS Catalog v2 can use
+  # identifiers through trait filters, which is more stable than relying only
+  # on resolved text labels.
+  labels <- c(labels, ids)
 
   known_labels <- list(
     EFO_0001663 = c("prostate cancer", "prostate carcinoma"),
@@ -574,8 +698,10 @@ resolve_efo_labels <- function(efo_id, verbose = interactive()) {
     EFO_0001072 = character(0)
   )
 
-  if (!is.null(known_labels[[efo_id]])) {
-    labels <- c(labels, known_labels[[efo_id]])
+  for (id in ids) {
+    if (!is.null(known_labels[[id]])) {
+      labels <- c(labels, known_labels[[id]])
+    }
   }
 
   extract_trait_labels <- function(js) {
@@ -607,11 +733,13 @@ resolve_efo_labels <- function(efo_id, verbose = interactive()) {
     out
   }
 
-  query_list <- list(
-    list(efo_id = efo_id, size = 20, page = 0),
-    list(efo_trait = efo_id, size = 20, page = 0),
-    list(query = efo_id, size = 20, page = 0)
-  )
+  query_list <- list()
+
+  for (id in ids) {
+    query_list[[length(query_list) + 1L]] <- list(efo_id = id, size = 20, page = 0)
+    query_list[[length(query_list) + 1L]] <- list(efo_trait = id, size = 20, page = 0)
+    query_list[[length(query_list) + 1L]] <- list(query = id, size = 20, page = 0)
+  }
 
   for (qq in query_list) {
     js <- get_json(
@@ -629,17 +757,23 @@ resolve_efo_labels <- function(efo_id, verbose = interactive()) {
   labels
 }
 
+resolve_efo_labels <- function(efo_id, verbose = interactive()) {
+  resolve_trait_labels(efo_id, verbose = verbose)
+}
+
 pull_v2_associations <- function(efo_id,
                                  trait_labels,
                                  p_cut,
                                  verbose = interactive()) {
   base_url <- "https://www.ebi.ac.uk/gwas/rest/api/v2/associations"
 
-  one_query <- function(label,
+  one_query <- function(plan_item,
                         page_size = 500L,
                         sleep_sec = 0.35,
                         base_progress = 10,
                         max_progress = 70) {
+    query <- plan_item$query
+    direct_id_route <- plan_item$route %in% c("direct_id", "alias_direct_id")
     rows <- list()
     page <- 0L
     total_pages <- Inf
@@ -647,11 +781,13 @@ pull_v2_associations <- function(efo_id,
     repeat {
       js <- get_json(
         base_url,
-        query = list(
-          efo_trait = label,
-          show_child_traits = "true",
-          size = page_size,
-          page = page
+        query = c(
+          query,
+          list(
+            show_child_traits = "true",
+            size = page_size,
+            page = page
+          )
         )
       )
 
@@ -662,7 +798,14 @@ pull_v2_associations <- function(efo_id,
       if (!is.null(js$page$totalPages)) {
         total_pages <- as.integer(js$page$totalPages)
 
-        if (total_pages > 0) {
+        if (isTRUE(direct_id_route) &&
+            page == 0L &&
+            is.finite(total_pages) &&
+            total_pages > 50L) {
+          break
+        }
+
+        if (is.finite(total_pages) && total_pages > 0) {
           p <- base_progress + ((page + 1) / total_pages) *
             (max_progress - base_progress)
           progress_genomic(p, "GWAS Catalog v2", verbose = verbose)
@@ -673,6 +816,27 @@ pull_v2_associations <- function(efo_id,
 
       if (length(items) == 0L) {
         break
+      }
+
+      if (isTRUE(direct_id_route)) {
+        item_has_id <- vapply(
+          items,
+          function(it) {
+            vals <- as.character(flatten_atomic(it))
+            vals <- vals[!is.na(vals)]
+            any(
+              vals == plan_item$value |
+                vals == gsub("_", ":", plan_item$value, fixed = TRUE)
+            )
+          },
+          logical(1)
+        )
+
+        if (!any(item_has_id)) {
+          break
+        }
+
+        items <- items[item_has_id]
       }
 
       for (it in items) {
@@ -731,22 +895,35 @@ pull_v2_associations <- function(efo_id,
   }
 
   all_rows <- list()
+  query_plan <- association_query_plan(efo_id, trait_labels)
 
-  if (length(trait_labels) == 0) {
+  if (length(query_plan) == 0) {
     return(tibble::tibble())
   }
 
-  n_labels <- length(trait_labels)
+  n_queries <- length(query_plan)
 
-  for (i in seq_along(trait_labels)) {
-    base_p <- 10 + ((i - 1) / n_labels) * 60
-    max_p  <- 10 + (i / n_labels) * 60
+  for (stage in sort(unique(vapply(query_plan, `[[`, integer(1), "stage")))) {
+    stage_rows <- list()
+    stage_idx <- which(vapply(query_plan, `[[`, integer(1), "stage") == stage)
 
-    all_rows[[length(all_rows) + 1L]] <- one_query(
-      trait_labels[[i]],
-      base_progress = base_p,
-      max_progress = max_p
-    )
+    for (i in stage_idx) {
+      base_p <- 10 + ((i - 1) / n_queries) * 60
+      max_p  <- 10 + (i / n_queries) * 60
+
+      stage_rows[[length(stage_rows) + 1L]] <- one_query(
+        query_plan[[i]],
+        base_progress = base_p,
+        max_progress = max_p
+      )
+    }
+
+    stage_df <- dplyr::bind_rows(stage_rows)
+
+    if (nrow(stage_df) > 0L) {
+      all_rows[[length(all_rows) + 1L]] <- stage_df
+      break
+    }
   }
 
   ss <- dplyr::bind_rows(all_rows)
@@ -769,37 +946,11 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
   base_url <- "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms"
 
   rows <- list()
-
-  if (length(rsids) == 0) {
-    return(tibble::tibble())
-  }
-
-  for (i in seq_along(rsids)) {
-    progress_genomic(
-      70 + (i / length(rsids)) * 15,
-      "variant metadata",
-      verbose = verbose
-    )
-
-    rs <- rsids[i]
-
-    js <- get_json(
-      base_url,
-      query = list(
-        rs_id = rs,
-        size = 5,
-        page = 0
-      )
-    )
-
-    if (is.null(js)) {
-      next
-    }
-
-    items <- extract_items(js)
+  parse_snp_items <- function(items, rs) {
+    out <- list()
 
     if (length(items) == 0L) {
-      next
+      return(out)
     }
 
     for (it in items) {
@@ -817,7 +968,7 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
       pos <- get_pos_from_flat(f)
       genes <- get_genes_from_flat(f)
 
-      rows[[length(rows) + 1L]] <- tibble::tibble(
+      out[[length(out) + 1L]] <- tibble::tibble(
         variant_id = rs,
         chromosome_name = chr,
         chromosome_position = pos,
@@ -825,7 +976,56 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
       )
     }
 
-    Sys.sleep(0.25)
+    out
+  }
+
+  if (length(rsids) == 0) {
+    return(tibble::tibble())
+  }
+
+  for (i in seq_along(rsids)) {
+    progress_genomic(
+      70 + (i / length(rsids)) * 15,
+      "variant metadata",
+      verbose = verbose
+    )
+
+    rs <- rsids[i]
+
+    js <- get_json(
+      paste0(base_url, "/", utils::URLencode(rs, reserved = TRUE)),
+      sleep_on_429 = 2,
+      timeout_sec = 20
+    )
+
+    items <- extract_items(js)
+
+    if (length(items) == 0L && !is.null(js) && is.list(js)) {
+      items <- list(js)
+    }
+
+    if (length(items) == 0L) {
+      js <- get_json(
+        base_url,
+        query = list(
+          rs_id = rs,
+          size = 5,
+          page = 0
+        ),
+        sleep_on_429 = 2,
+        timeout_sec = 20
+      )
+
+      items <- extract_items(js)
+    }
+
+    parsed_rows <- parse_snp_items(items, rs)
+
+    if (length(parsed_rows) > 0L) {
+      rows <- c(rows, parsed_rows)
+    }
+
+    Sys.sleep(0.05)
   }
 
   if (length(rows) == 0L) {
@@ -841,16 +1041,18 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
     dplyr::distinct(.data$variant_id, .keep_all = TRUE)
 }
 
-#' Fetch significant GWAS associations for an EFO trait
+#' Fetch significant GWAS associations for a GWAS Catalog trait identifier
 #'
 #' @description
 #' Retrieves significant GWAS Catalog associations directly from the
 #' EMBL-EBI GWAS Catalog REST API v2. The function resolves the supplied
-#' Experimental Factor Ontology (EFO) identifier to trait labels, retrieves
-#' paginated association records, filters by p-value, and returns a list used
-#' by \code{\link{run_gwas2crispr}}.
+#' GWAS Catalog trait identifier to direct identifier queries and trait labels,
+#' retrieves paginated association records, filters by p-value, and returns a
+#' list used by \code{\link{run_gwas2crispr}}.
 #'
-#' @param efo_id character. EFO trait identifier, such as EFO_0001663.
+#' @param efo_id character. GWAS Catalog trait identifier. The argument name is
+#'   retained for backward compatibility. Examples include EFO_0001663,
+#'   MONDO_0007254, and NCIT_C4872 when supported by the GWAS Catalog API.
 #' @param p_cut numeric. P-value threshold for significance.
 #' @param verbose logical. If \code{TRUE}, prints a compact progress line.
 #'
@@ -863,7 +1065,10 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
 #'
 #' @details
 #' This function performs network calls to the GWAS Catalog REST API v2 and may
-#' be affected by service availability or rate limits.
+#' be affected by service availability or rate limits. Selected supported
+#' disease and cancer trait identifier prefixes include EFO, MONDO, and NCIT.
+#' HP, Orphanet, and ORPHA are accepted for compatibility. GO identifiers are
+#' not supported as primary GWAS Catalog trait identifiers in gwas2crispr 0.1.5.
 #'
 #' @seealso \code{\link{run_gwas2crispr}}
 #'
@@ -877,11 +1082,7 @@ pull_v2_snp_details <- function(rsids, verbose = interactive()) {
 fetch_gwas <- function(efo_id = "EFO_0001663",
                        p_cut = 5e-8,
                        verbose = interactive()) {
-  if (!is.character(efo_id) ||
-      length(efo_id) != 1L ||
-      !grepl("^EFO_\\d+$", efo_id)) {
-    stop("efo_id must be a single string like 'EFO_0001663'.", call. = FALSE)
-  }
+  trait_id <- validate_trait_id(efo_id, arg = "efo_id")
 
   if (!is.numeric(p_cut) ||
       length(p_cut) != 1L ||
@@ -892,16 +1093,16 @@ fetch_gwas <- function(efo_id = "EFO_0001663",
 
   progress_genomic(5, "initializing", verbose = verbose)
 
-  trait_labels <- resolve_efo_labels(efo_id, verbose = verbose)
+  trait_labels <- resolve_trait_labels(trait_id, verbose = verbose)
 
   if (length(trait_labels) == 0L) {
-    stop("Could not resolve trait labels for: ", efo_id, call. = FALSE)
+    stop("Could not resolve trait labels for: ", trait_id, call. = FALSE)
   }
 
   progress_genomic(10, "trait resolved", verbose = verbose)
 
   ss <- pull_v2_associations(
-    efo_id = efo_id,
+    efo_id = trait_id,
     trait_labels = trait_labels,
     p_cut = p_cut,
     verbose = verbose

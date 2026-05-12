@@ -1,3 +1,16 @@
+# gwas2crispr 0.1.5
+
+- **Expanded trait identifier validation:** Expanded accepted GWAS Catalog trait identifier formats beyond the original EFO-only validation.
+- **Backward compatibility preserved:** Preserved the existing `efo_id` argument and `--efo` CLI option for backward compatibility.
+- **Identifier normalization added:** Added identifier normalization for underscore and colon formats.
+- **Selected supported prefixes:** Added support for selected disease and cancer trait identifier prefixes including EFO, MONDO, and NCIT when supported by the GWAS Catalog API.
+- **Compatibility prefixes accepted:** Added compatibility validation for selected phenotype and rare-disease prefixes, including HP, Orphanet, and ORPHA.
+- **GO explicitly rejected:** Explicitly rejected GO identifiers as primary GWAS Catalog trait identifiers in gwas2crispr 0.1.5.
+- **Retrieval cascade improved:** Added direct identifier-based association retrieval attempts before label-based retrieval.
+- **Coordinate recovery improved:** Improved coordinate recovery for rsID records when GWAS Catalog responses lack complete GRCh38 coordinates.
+- **Optional Ensembl fallback added:** Added optional non-fatal Ensembl REST fallback for missing rsID coordinates.
+- **CLI, documentation, and tests updated:** Updated CLI validation, documentation, and tests.
+
 # gwas2crispr 0.1.4
 
 - **GWAS Catalog REST API v2 backend:** Replaced the former third-party GWAS retrieval workflow with direct EMBL-EBI GWAS Catalog REST API v2 retrieval.

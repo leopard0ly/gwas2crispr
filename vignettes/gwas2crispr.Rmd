@@ -22,13 +22,17 @@ knitr::opts_chunk$set(
 
 `gwas2crispr` prepares genome-wide association study (GWAS) results for downstream clustered regularly interspaced short palindromic repeats (CRISPR) workflows.
 
-The package retrieves significant single-nucleotide polymorphisms (SNPs) for an Experimental Factor Ontology (EFO) trait from the EMBL-EBI GWAS Catalog REST API v2 and returns CRISPR-ready outputs for the GRCh38/hg38 human genome build.
+The package retrieves significant single-nucleotide polymorphisms (SNPs) for supported GWAS Catalog trait identifiers from the EMBL-EBI GWAS Catalog REST API v2 and returns CRISPR-ready outputs for the GRCh38/hg38 human genome build.
 
 The main outputs are:
 
 * comma-separated values (CSV) tables,
 * Browser Extensible Data (BED) files,
 * optional FASTA sequence files.
+
+The public argument name `efo_id` is retained for backward compatibility. In gwas2crispr 0.1.5, selected EFO, MONDO, and NCIT identifiers are supported when available through the GWAS Catalog API. HP, Orphanet, and ORPHA identifiers are accepted for compatibility with selected records.
+
+Example accepted formats include `EFO_0001663`, `EFO:0001663`, `MONDO_0007254`, `MONDO:0007254`, `NCIT_C4872`, and `NCIT:C4872`.
 
 ## Installation
 
@@ -73,6 +77,13 @@ gwas_data <- fetch_gwas(
 
 names(gwas_data)
 head(gwas_data$associations)
+```
+
+Selected non-EFO identifiers use the same argument name when supported by the GWAS Catalog API:
+
+```{r, eval=FALSE}
+fetch_gwas(efo_id = "MONDO_0007254", p_cut = 5e-8, verbose = FALSE)
+fetch_gwas(efo_id = "NCIT_C4872", p_cut = 5e-8, verbose = FALSE)
 ```
 
 ## Run without writing files

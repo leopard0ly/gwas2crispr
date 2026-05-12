@@ -11,7 +11,7 @@ main <- function() {
 
   option_list <- list(
     optparse::make_option(c("-e", "--efo"), type = "character",
-                          help = "EFO trait ID (required), e.g. EFO_0001663"),
+                          help = "GWAS Catalog trait identifier, e.g. EFO_0001663, MONDO_0007254, or NCIT_C4872"),
     optparse::make_option(c("-p", "--pthresh"), type = "double", default = 5e-8,
                           help = "P-value cut-off [default %default]"),
     optparse::make_option(c("-f", "--flank"), type = "integer", default = 200,
@@ -32,13 +32,39 @@ main <- function() {
   )
   opt <- optparse::parse_args(parser)
 
-  if (is.null(opt$efo) || !grepl("^EFO_\\d+$", opt$efo)) {
+  trait_id <- if (is.null(opt$efo) || length(opt$efo) != 1L) {
+    NA_character_
+  } else {
+    gsub(":", "_", trimws(opt$efo), fixed = TRUE)
+  }
+
+  valid_trait_id <- length(trait_id) == 1L &&
+    !is.na(trait_id) &&
+    nzchar(trait_id) &&
+    grepl(
+      "^(EFO|MONDO|HP)_[0-9]+$|^NCIT_C[0-9]+$|^(Orphanet|ORPHA)_[0-9]+$",
+      trait_id,
+      perl = TRUE
+    )
+
+  if (!is.na(trait_id) && grepl("^GO_[0-9]+$", trait_id, perl = TRUE)) {
     optparse::print_help(parser)
-    stop("EFO trait ID is required and must look like 'EFO_0001663'.", call. = FALSE)
+    stop(
+      "GO identifiers are not supported as primary GWAS Catalog trait identifiers in gwas2crispr 0.1.5.",
+      call. = FALSE
+    )
+  }
+
+  if (!valid_trait_id) {
+    optparse::print_help(parser)
+    stop(
+      "The --efo option must be a single supported GWAS Catalog trait identifier such as 'EFO_0001663', 'MONDO_0007254', or 'NCIT_C4872'.",
+      call. = FALSE
+    )
   }
 
   res <- gwas2crispr::run_gwas2crispr(
-    efo_id     = opt$efo,
+    efo_id     = trait_id,
     p_cut      = opt$pthresh,
     flank_bp   = opt$flank,
     out_prefix = opt$out,

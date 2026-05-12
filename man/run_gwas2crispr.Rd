@@ -14,7 +14,9 @@ run_gwas2crispr(
 )
 }
 \arguments{
-\item{efo_id}{character. EFO trait identifier, such as EFO_0001663.}
+\item{efo_id}{character. GWAS Catalog trait identifier. The argument name is
+retained for backward compatibility. Examples include EFO_0001663,
+MONDO_0007254, and NCIT_C4872 when supported by the GWAS Catalog API.}
 
 \item{p_cut}{numeric. P-value threshold for significance.}
 
@@ -40,15 +42,20 @@ Invisibly returns a list with:
 }
 \description{
 Runs the complete computational preparation workflow: retrieves GWAS Catalog
-associations through \code{\link{fetch_gwas}}, prepares SNP metadata, creates
-BED intervals, and optionally writes CSV, BED, and FASTA files for downstream
-CRISPR guide-design preparation.
+associations for a supported trait identifier through
+\code{\link{fetch_gwas}}, prepares SNP metadata, creates BED intervals, and
+optionally writes CSV, BED, and FASTA files for downstream CRISPR guide-design
+preparation.
 }
 \details{
 Only GRCh38/hg38 is supported. CSV and BED outputs can be produced without
 genome packages. FASTA output is generated only when
 \pkg{BSgenome.Hsapiens.UCSC.hg38} and \pkg{Biostrings} are installed.
 If FASTA dependencies are unavailable, the function still writes CSV and BED.
+Selected supported disease and cancer trait identifier prefixes include EFO,
+MONDO, and NCIT. HP, Orphanet, and ORPHA are accepted for compatibility. GO
+identifiers are not supported as primary GWAS Catalog trait identifiers in
+gwas2crispr 0.1.5.
 }
 \examples{
 \donttest{
