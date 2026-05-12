@@ -104,33 +104,6 @@ lung_snps_flank300.fa
 
 The FASTA file is written only when the hg38 BSgenome and Biostrings packages are installed.
 
-## Thesis case-study example
-
-The prostate cancer case study can be reproduced with:
-
-```r
-library(gwas2crispr)
-
-res <- run_gwas2crispr(
-  efo_id     = "EFO_0001663",
-  p_cut      = 5e-8,
-  flank_bp   = 200,
-  out_prefix = "prostate",
-  verbose    = TRUE
-)
-
-res$summary
-res$written
-```
-
-Expected output files:
-
-```text
-prostate_snps_full.csv
-prostate_snps_hg38.bed
-prostate_snps_flank200.fa
-```
-
 ## Object-only mode
 
 No files are written when `out_prefix = NULL`.
