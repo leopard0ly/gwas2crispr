@@ -1,6 +1,6 @@
 # gwas2crispr
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16878244.svg)](https://doi.org/10.5281/zenodo.16878244)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20129602.svg)](https://doi.org/10.5281/zenodo.20129602)
 
 > **GWAS-to-CRISPR**: direct GWAS Catalog REST API v2 retrieval and GRCh38/hg38 CSV, BED, and optional FASTA preparation for downstream CRISPR guide-design workflows.
 
