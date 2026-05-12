@@ -3,47 +3,36 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20129602.svg)](https://doi.org/10.5281/zenodo.20129602)
 [![CRAN status](https://www.r-pkg.org/badges/version/gwas2crispr)](https://CRAN.R-project.org/package=gwas2crispr)
 
-> **GWAS-to-CRISPR**: direct EMBL-EBI GWAS Catalog REST API v2 retrieval and GRCh38/hg38 CSV, BED, and optional FASTA preparation for downstream CRISPR guide-design workflows.
+> GWAS-to-CRISPR: streamlined retrieval of significant GWAS SNPs, metadata aggregation, and optional FASTA/BED/CSV export for downstream CRISPR guide-design workflows using GRCh38/hg38.
 
 ## Overview
 
-`gwas2crispr` retrieves significant genome-wide association study (**GWAS**) associations for an **Experimental Factor Ontology** (**EFO**) trait directly from the EMBL-EBI GWAS Catalog REST API v2.
+Genome-wide association studies (GWAS) link traits to genetic variants, but raw GWAS Catalog association records are not directly usable for downstream CRISPR guide-design preparation.
 
-The package prepares:
+`gwas2crispr` bridges this gap. It retrieves significant single-nucleotide polymorphisms (SNPs) for a given Experimental Factor Ontology (EFO) trait directly from the EMBL-EBI GWAS Catalog REST API v2, aggregates variant, gene, and study metadata, and returns in-memory summaries. When requested, it also writes ready-to-use CSV, BED, and optional FASTA files for high-throughput downstream CRISPR target-design preparation.
 
-- harmonised SNP metadata in CSV format
-- genomic intervals in BED format
-- optional FASTA sequences with user-defined flanking regions
-
-All genomic outputs are prepared for **GRCh38/hg38**.
+All genomic coordinates are prepared for GRCh38/hg38.
 
 The package is a computational preparation workflow. It does not perform wet-lab validation, therapeutic interpretation, biological causality testing, or biological efficacy testing.
 
 ## Core functions
 
-```r
-fetch_gwas(
-  efo_id,
-  p_cut = 5e-8,
-  verbose = interactive()
-)
+- `fetch_gwas(efo_id, p_cut = 5e-8, verbose = interactive())`: fetches significant associations for an EFO trait directly from the EMBL-EBI GWAS Catalog REST API v2.
+- `run_gwas2crispr(efo_id, p_cut = 5e-8, flank_bp = 200, out_prefix = NULL, verbose = interactive())`: end-to-end pipeline that calls `fetch_gwas()`, aggregates variant/gene/study metadata, and returns an object with summaries. If you provide `out_prefix`, it also writes CSV, BED, and optional FASTA files.
 
-run_gwas2crispr(
-  efo_id,
-  p_cut = 5e-8,
-  flank_bp = 200,
-  out_prefix = NULL,
-  verbose = interactive()
-)
-```
+> CRAN-safe examples: the package does not write files by default. Examples that perform network operations or file writing should use `tempdir()` or user-defined output paths.
+
+---
 
 ## Installation
 
-### Requirements
+### Requirements (read first)
 
 - R >= 4.1
 - Direct internet access to the EMBL-EBI GWAS Catalog REST API v2
-- Core R packages listed in `DESCRIPTION`
+- Core CRAN stack listed in `DESCRIPTION`
+- FASTA output requires optional Bioconductor sequence packages
+- Optional for CLI: `optparse`
 
 ### Install from CRAN
 
@@ -51,18 +40,11 @@ run_gwas2crispr(
 install.packages("gwas2crispr")
 ```
 
-### Install from GitHub
+### Install Bioconductor dependencies (for FASTA)
 
-```r
-if (!requireNamespace("devtools", quietly = TRUE))
-  install.packages("devtools")
+FASTA output requires `Biostrings`, `GenomeInfoDb`, and `BSgenome.Hsapiens.UCSC.hg38`.
 
-devtools::install_github("leopard0ly/gwas2crispr")
-```
-
-## Optional FASTA requirements
-
-FASTA extraction requires Bioconductor sequence packages:
+If these packages are missing, CSV and BED outputs are still produced, while FASTA is skipped.
 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -75,18 +57,70 @@ BiocManager::install(c(
 ))
 ```
 
-CSV and BED outputs can still be produced without the optional FASTA packages.
+### Install from GitHub
 
-## Quick start
+```r
+if (!requireNamespace("devtools", quietly = TRUE))
+  install.packages("devtools")
+
+devtools::install_github("leopard0ly/gwas2crispr")
+```
+
+---
+
+## Quick start (primary workflow)
+
+Use a clear prefix and write outputs to your current working directory:
+
+```r
+library(gwas2crispr)
+
+run_gwas2crispr(
+  efo_id     = "EFO_0000707",  # lung disease example
+  p_cut      = 1e-6,
+  flank_bp   = 300,
+  out_prefix = "lung",
+  verbose    = TRUE
+)
+```
+
+Outputs:
+
+- `lung_snps_full.csv` — harmonised SNP metadata from GWAS Catalog associations
+- `lung_snps_hg38.bed` — GRCh38/hg38 intervals suitable for genomic intersection
+- `lung_snps_flank300.fa` — sequence windows for downstream CRISPR guide-design preparation
+
+The FASTA file is written only when the optional hg38 sequence packages are installed.
+
+### A) Object-only (no files written)
 
 ```r
 library(gwas2crispr)
 
 res <- run_gwas2crispr(
-  efo_id     = "EFO_0000707",
-  p_cut      = 1e-6,
-  flank_bp   = 300,
-  out_prefix = "lung",
+  efo_id     = "EFO_0001663",  # prostate cancer
+  p_cut      = 5e-8,
+  flank_bp   = 200,
+  out_prefix = NULL,           # no writing; returns objects only
+  verbose    = FALSE
+)
+
+res$summary
+res$bed
+```
+
+### B) Write files to a safe temporary directory (secondary)
+
+```r
+library(gwas2crispr)
+
+out <- file.path(tempdir(), "prostate")
+
+res <- run_gwas2crispr(
+  efo_id     = "EFO_0001663",
+  p_cut      = 5e-8,
+  flank_bp   = 200,
+  out_prefix = out,
   verbose    = TRUE
 )
 
@@ -96,56 +130,33 @@ res$written
 
 Expected output files:
 
-```text
-lung_snps_full.csv
-lung_snps_hg38.bed
-lung_snps_flank300.fa
-```
+- `<tempdir>/prostate_snps_full.csv`
+- `<tempdir>/prostate_snps_hg38.bed`
+- `<tempdir>/prostate_snps_flank200.fa`
 
-The FASTA file is written only when the hg38 BSgenome and Biostrings packages are installed.
+The FASTA file is written only when the optional hg38 sequence packages are installed.
 
-## Object-only mode
-
-No files are written when `out_prefix = NULL`.
-
-```r
-library(gwas2crispr)
-
-res <- run_gwas2crispr(
-  efo_id     = "EFO_0001663",
-  p_cut      = 5e-8,
-  flank_bp   = 200,
-  out_prefix = NULL,
-  verbose    = FALSE
-)
-
-res$summary
-res$bed
-```
+---
 
 ## Output files
 
 When `out_prefix` is supplied, the package writes:
 
-```text
-<prefix>_snps_full.csv
-<prefix>_snps_hg38.bed
-<prefix>_snps_flank<bp>.fa
-```
+- `<prefix>_snps_full.csv`
+- `<prefix>_snps_hg38.bed`
+- `<prefix>_snps_flank<bp>.fa`
 
 Example with `out_prefix = "prostate"` and `flank_bp = 200`:
 
-```text
-prostate_snps_full.csv
-prostate_snps_hg38.bed
-prostate_snps_flank200.fa
-```
+- `prostate_snps_full.csv`
+- `prostate_snps_hg38.bed`
+- `prostate_snps_flank200.fa`
+
+---
 
 ## Command-line interface
 
-`gwas2crispr` includes a portable command-line interface (**CLI**) for running the same GWAS-to-CRISPR preparation workflow outside an interactive R session.
-
-The CLI script is stored in the package source tree at:
+A portable command-line interface (CLI) script is available under:
 
 ```text
 inst/scripts/gwas2crispr.R
@@ -199,7 +210,7 @@ If running from a cloned GitHub source folder:
 Rscript inst\scripts\gwas2crispr.R -e EFO_0001663 -p 5e-8 -f 200 -o prostate -v
 ```
 
-If the package is already installed, use `system.file()` to find the installed CLI script automatically:
+If the package is already installed and `Rscript` is available in the Windows PATH:
 
 ```bat
 for /f "delims=" %i in ('Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwas2crispr'))"') do Rscript "%i" -e EFO_0001663 -p 5e-8 -f 200 -o prostate -v
@@ -238,13 +249,13 @@ $script = & $Rscript -e "cat(system.file('scripts','gwas2crispr.R', package='gwa
 
 For the prostate cancer example above, the CLI writes:
 
-```text
-prostate_snps_full.csv
-prostate_snps_hg38.bed
-prostate_snps_flank200.fa
-```
+- `prostate_snps_full.csv`
+- `prostate_snps_hg38.bed`
+- `prostate_snps_flank200.fa`
 
 The FASTA file is written only when the optional hg38 sequence packages are installed.
+
+---
 
 ## Testing
 
@@ -253,6 +264,8 @@ devtools::test()
 ```
 
 Network-dependent tests are skipped on CRAN.
+
+---
 
 ## Notes
 
@@ -264,6 +277,8 @@ Network-dependent tests are skipped on CRAN.
 - CSV and BED preparation remain available without optional genome packages.
 - The package prepares computational outputs for downstream CRISPR guide-design workflows only.
 - The package does not perform therapeutic interpretation, wet-lab validation, or biological efficacy testing.
+
+---
 
 ## Citation
 
@@ -277,11 +292,15 @@ You can also run:
 citation("gwas2crispr")
 ```
 
+---
+
 ## Getting help
 
 Report issues at:
 
 [https://github.com/leopard0ly/gwas2crispr/issues](https://github.com/leopard0ly/gwas2crispr/issues)
+
+---
 
 ## License
 
